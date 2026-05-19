@@ -6,542 +6,753 @@
 <title>Geometry Dash</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #1a0533; }
-#gd-wrap {
-  font-family: 'Arial Black', Arial, sans-serif;
-  background: #1a0533;
-  width: 100vw; height: 100vh;
-  overflow: hidden; position: relative;
-  touch-action: none;
-}
-canvas { display: block; width: 100%; height: 100%; }
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:100%;height:100%;overflow:hidden;background:#080018;touch-action:none;user-select:none;-webkit-user-select:none; }
+#canvas { display:block;position:absolute;top:0;left:0; }
 #ui {
-  position: absolute; top: 0; left: 0; right: 0;
-  display: flex; justify-content: space-between; align-items: flex-start;
-  padding: 12px 16px; pointer-events: none;
+  position:absolute;top:0;left:0;right:0;
+  padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-start;
+  pointer-events:none;font-family:'Arial Black',Arial,sans-serif;z-index:5;
 }
-#score-display {
-  color: #fff; font-size: 20px; font-weight: 900;
-  text-shadow: 0 0 10px #f0c040, 2px 2px 0 #000;
-  letter-spacing: 1px;
-}
-#percent-bar {
-  background: rgba(0,0,0,0.4); border-radius: 20px;
-  height: 8px; width: 160px; margin-top: 6px;
-  overflow: hidden; border: 1px solid rgba(255,255,255,0.2);
-}
-#percent-fill {
-  height: 100%; background: linear-gradient(90deg,#f0c040,#ff6b35);
-  border-radius: 20px; width: 0%;
+#pct { color:#fff;font-size:18px;font-weight:900;text-shadow:2px 2px 0 #000,0 0 12px #f0c040; }
+#att { color:rgba(255,255,255,0.5);font-size:12px;padding-top:3px;text-align:right; }
+#mode-hint {
+  position:absolute;bottom:16px;left:0;right:0;text-align:center;
+  color:rgba(255,255,255,0.35);font-size:12px;font-family:Arial,sans-serif;
+  pointer-events:none;z-index:5;
 }
 #overlay {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  background: rgba(10,0,30,0.88);
-  color: #fff;
-  z-index: 10;
+  position:absolute;inset:0;background:rgba(8,0,20,0.95);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Arial Black',Arial,sans-serif;z-index:100;
 }
-#overlay h1 {
-  font-size: clamp(24px, 7vw, 40px);
-  font-weight: 900;
-  background: linear-gradient(135deg,#f0c040,#ff6b35,#ff4dff);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 8px; letter-spacing: 2px;
-  text-align: center; padding: 0 16px;
+#ol-title {
+  font-size:30px;font-weight:900;margin-bottom:8px;text-align:center;
+  background:linear-gradient(135deg,#f0c040,#ff6b35,#ff4dff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
-#overlay p { color: rgba(255,255,255,0.65); margin-bottom: 28px; font-size: 14px; text-align: center; padding: 0 24px; }
-#overlay .best { color: #f0c040; font-size: 14px; margin-top: 10px; font-weight: 700; }
-#overlay .attempts-info { color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 6px; }
-#play-btn {
-  background: linear-gradient(135deg,#f0c040,#ff6b35);
-  border: none; border-radius: 30px; color: #1a0533;
-  font-size: 18px; font-weight: 900; padding: 14px 48px;
-  cursor: pointer; letter-spacing: 1px;
-  box-shadow: 0 4px 24px rgba(240,192,64,0.4);
-  -webkit-tap-highlight-color: transparent;
-  position: relative; z-index: 20;
-  touch-action: manipulation;
+#ol-sub { color:rgba(255,255,255,0.55);font-size:14px;margin-bottom:28px;text-align:center;padding:0 20px;font-family:Arial,sans-serif;font-weight:normal; }
+#ol-best { color:#f0c040;font-size:15px;margin-top:12px;font-weight:900; }
+#ol-att  { color:rgba(255,255,255,0.35);font-size:12px;margin-top:6px;font-family:Arial,sans-serif;font-weight:normal; }
+.btn { border:none;border-radius:50px;cursor:pointer;font-family:'Arial Black',Arial,sans-serif;font-weight:900;letter-spacing:1px;-webkit-tap-highlight-color:transparent;touch-action:manipulation; }
+#play-btn { background:linear-gradient(135deg,#f0c040,#ff6b35);color:#1a0533;font-size:20px;padding:16px 56px;box-shadow:0 0 30px rgba(240,192,64,0.5); }
+#levels-btn { background:transparent;border:2px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);font-size:15px;padding:11px 36px;margin-top:12px; }
+#level-screen {
+  position:absolute;inset:0;background:rgba(8,0,20,0.97);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Arial Black',Arial,sans-serif;z-index:100;
 }
-#play-btn:active { opacity: 0.85; transform: scale(0.97); }
-#tap-area {
-  position: absolute; inset: 0;
-  z-index: 1;
-}
-#tap-hint {
-  position: absolute; bottom: 16px; left: 0; right: 0;
-  text-align: center; color: rgba(255,255,255,0.3); font-size: 12px;
-  pointer-events: none; z-index: 2;
-}
+#level-screen h2 { font-size:24px;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,#f0c040,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+#level-screen p { color:rgba(255,255,255,0.4);font-size:13px;font-family:Arial,sans-serif;font-weight:normal;margin-bottom:28px; }
+.level-cards { display:flex;flex-direction:column;gap:14px;width:80%;max-width:320px; }
+.level-card { border-radius:16px;padding:16px 20px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:space-between;border:2px solid transparent; }
+.level-card:active { transform:scale(0.97); }
+.level-card.easy   { background:linear-gradient(135deg,#064e3b,#065f46);border-color:#10b981; }
+.level-card.medium { background:linear-gradient(135deg,#1e3a5f,#1e40af);border-color:#3b82f6; }
+.level-card.hard   { background:linear-gradient(135deg,#3b0764,#4c1d95);border-color:#a855f7; }
+.linfo { display:flex;flex-direction:column; }
+.lname { color:#fff;font-size:18px;font-weight:900; }
+.ldesc { color:rgba(255,255,255,0.55);font-size:12px;font-family:Arial,sans-serif;font-weight:normal;margin-top:2px; }
+.lbest { font-size:11px;margin-top:4px;font-family:Arial,sans-serif;font-weight:normal; }
+.easy .lbest{color:#6ee7b7;} .medium .lbest{color:#93c5fd;} .hard .lbest{color:#d8b4fe;}
+.lbadge { font-size:28px;opacity:0.9; }
+#back-btn { margin-top:22px;background:transparent;border:2px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);font-size:14px;padding:10px 30px; }
 </style>
 </head>
 <body>
-<div id="gd-wrap">
-  <canvas id="canvas"></canvas>
-  <div id="ui">
-    <div>
-      <div id="score-display">0%</div>
-      <div id="percent-bar"><div id="percent-fill"></div></div>
+<canvas id="canvas"></canvas>
+<div id="ui">
+  <div id="pct">0%</div>
+  <div id="att"></div>
+</div>
+<div id="mode-hint"></div>
+
+<div id="overlay">
+  <div id="ol-title">GEOMETRY DASH</div>
+  <div id="ol-sub">Тапни по экрану для прыжка</div>
+  <button class="btn" id="play-btn">ИГРАТЬ</button>
+  <button class="btn" id="levels-btn">ВЫБРАТЬ УРОВЕНЬ</button>
+  <div id="ol-best"></div>
+  <div id="ol-att"></div>
+</div>
+
+<div id="level-screen">
+  <h2>ВЫБОР УРОВНЯ</h2>
+  <p>Выбери сложность</p>
+  <div class="level-cards">
+    <div class="level-card easy" data-level="1">
+      <div class="linfo">
+        <div class="lname">Уровень 1</div>
+        <div class="ldesc">🟢 Лёгкий · Только куб</div>
+        <div class="lbest" id="best1">Рекорд: —</div>
+      </div>
+      <div class="lbadge">⬛</div>
     </div>
-    <div id="attempts-display" style="color:rgba(255,255,255,0.45);font-size:12px;text-align:right;padding-top:2px;"></div>
+    <div class="level-card medium" data-level="2">
+      <div class="linfo">
+        <div class="lname">Уровень 2</div>
+        <div class="ldesc">🔵 Средний · Больше шипов</div>
+        <div class="lbest" id="best2">Рекорд: —</div>
+      </div>
+      <div class="lbadge">⬛</div>
+    </div>
+    <div class="level-card hard" data-level="3">
+      <div class="linfo">
+        <div class="lname">Уровень 3</div>
+        <div class="ldesc">🚀 Сложный · Куб + Корабль</div>
+        <div class="lbest" id="best3">Рекорд: —</div>
+      </div>
+      <div class="lbadge">🚀</div>
+    </div>
   </div>
-  <div id="tap-area"></div>
-  <div id="overlay">
-    <h1 id="ol-title">GEOMETRY DASH</h1>
-    <p id="ol-sub">Тапни по экрану для прыжка</p>
-    <button id="play-btn">ИГРАТЬ</button>
-    <div class="best" id="best-label"></div>
-    <div class="attempts-info" id="attempts-info"></div>
-  </div>
-  <div id="tap-hint">ТАП — прыжок</div>
+  <button class="btn" id="back-btn">← НАЗАД</button>
 </div>
 
 <script>
-// --- Telegram WebApp init ---
 const tg = window.Telegram && window.Telegram.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-  tg.disableVerticalSwipes && tg.disableVerticalSwipes();
+if (tg) { tg.ready(); tg.expand(); }
+function haptic(t) {
+  if (!tg||!tg.HapticFeedback) return;
+  if (t==='jump') tg.HapticFeedback.impactOccurred('light');
+  if (t==='die')  tg.HapticFeedback.notificationOccurred('error');
+  if (t==='win')  tg.HapticFeedback.notificationOccurred('success');
 }
 
-function haptic(type) {
-  if (!tg || !tg.HapticFeedback) return;
-  if (type === 'jump') tg.HapticFeedback.impactOccurred('light');
-  if (type === 'death') tg.HapticFeedback.notificationOccurred('error');
-  if (type === 'win') tg.HapticFeedback.notificationOccurred('success');
-}
-
-// --- Canvas setup ---
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+let W = window.innerWidth, H = window.innerHeight;
+canvas.width=W; canvas.height=H;
+window.addEventListener('resize',()=>{ W=window.innerWidth;H=window.innerHeight;canvas.width=W;canvas.height=H; });
 
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+function T()  { return Math.round(W/18); }
+function CS() { return Math.round(T()*0.8); }
+function GY() { return Math.round(H*0.78); }
+function GRV(){ return H*0.0017; }
+function JMP(){ return -H*0.033; }
+function SPD(){
+  if (currentLevel===1) return W*0.004;
+  if (currentLevel===2) return W*0.0055;
+  return W*0.006;
 }
-resize();
-window.addEventListener('resize', resize);
 
-const W = () => canvas.width;
-const H = () => canvas.height;
-const GROUND = () => H() - Math.round(H() * 0.16);
-const TILE = () => Math.round(W() / 14);
-const CUBE_SIZE = () => Math.round(TILE() * 0.82);
-const SPEED = () => W() * 0.009;
-const JUMP_V = () => -H() * 0.032;
-const GRAVITY = () => H() * 0.0016;
+// Режим корабля
+const SHIP_GRV  = () => H * 0.0012;  // гравитация корабля (вниз)
+const SHIP_LIFT = () => -H * 0.0025; // тяга вверх при зажатии
+const SHIP_MAX  = () => H * 0.012;   // макс скорость
 
-// --- State ---
 let state = 'menu';
-let player, cameraX, bgX, particles, level;
-let attempts = 0, bestPercent = 0;
-let tick = 0;
+let camX, bgX, tick, player, parts, level;
+let currentLevel = 1;
+let attempts = 0;
+let bests = {1:0,2:0,3:0};
+let pressing = false; // зажата ли кнопка (для корабля)
 
-const PALETTES = [
-  ['#6a11cb','#2575fc','#ff4dff'],
-  ['#f0c040','#ff6b35','#ff4dff'],
-  ['#00f2fe','#4facfe','#43e97b'],
-  ['#f093fb','#f5576c','#4facfe'],
-  ['#43e97b','#38f9d7','#f0c040'],
-];
-let palette = PALETTES[0];
+const LEVEL_PALS = {
+  1: ['#10b981','#06b6d4','#a3e635'],
+  2: ['#3b82f6','#8b5cf6','#ec4899'],
+  3: ['#a855f7','#ec4899','#f97316'],
+};
+let pal = LEVEL_PALS[1];
 
-// --- Level generation ---
-function genLevel() {
-  const segments = [];
-  const T = TILE();
-  let x = W() + T * 4;
-  const totalLen = W() * 13;
+// Режимы сегментов уровня
+// mode: 'cube' | 'ship'
+// Уровень 3 чередует секции куба и корабля
 
-  while (x < totalLen - T * 6) {
-    const r = Math.random();
-    if (r < 0.15) {
-      const count = 1 + Math.floor(Math.random() * 3);
-      for (let i = 0; i < count; i++) segments.push({ type: 'spike', x: x + i * T, y: GROUND() });
-      x += count * T + T * (1 + Math.floor(Math.random() * 2));
-    } else if (r < 0.30) {
-      const bx = x, by = GROUND() - T;
-      segments.push({ type: 'block', x: bx, y: by });
-      if (Math.random() < 0.5) segments.push({ type: 'spike', x: bx, y: by });
-      x += T * (2 + Math.floor(Math.random() * 3));
-    } else if (r < 0.44) {
-      const count = 1 + Math.floor(Math.random() * 2);
-      for (let i = 0; i < count; i++) {
-        segments.push({ type: 'block', x: x + i * T, y: GROUND() - T });
-        if (i === count - 1 && Math.random() < 0.4)
-          segments.push({ type: 'spike', x: x + i * T, y: GROUND() - T });
+function makeLevel(lvl) {
+  const segs = [];
+  let x = W + T()*5;
+  const len = W * 14;
+
+  // Для уровня 3 — чередуем секции куб/корабль
+  // Секция корабля помечена { t:'ship_start', x } и { t:'ship_end', x }
+  // В секции корабля препятствия — верхние и нижние трубы
+
+  if (lvl === 3) {
+    // Сначала секция куба (~30% пути)
+    const shipStart = len * 0.35;
+    const shipEnd   = len * 0.70;
+
+    // Препятствия куба до секции корабля
+    while (x < shipStart - T()*8) {
+      const r = Math.random();
+      if (r < 0.20) {
+        const n = 1+Math.floor(Math.random()*3);
+        for (let i=0;i<n;i++) segs.push({t:'spike',x:x+i*T(),y:GY()});
+        x += n*T()+T()*(1+Math.floor(Math.random()*2));
+      } else if (r < 0.38) {
+        const by=GY()-T(); segs.push({t:'block',x,y:by});
+        if (Math.random()<0.6) segs.push({t:'spike',x,y:by});
+        x += T()*(2+Math.floor(Math.random()*3));
+      } else {
+        x += T()*(1+Math.floor(Math.random()*3));
       }
-      x += (count + 1) * T + T * Math.floor(Math.random() * 2);
-    } else {
-      x += T * (1 + Math.floor(Math.random() * 3));
+    }
+
+    // Переход в корабль
+    segs.push({t:'ship_start', x: shipStart});
+    x = shipStart + T()*4;
+
+    // Препятствия корабля — трубы (верх+низ с зазором)
+    const GAP = () => H * 0.30; // размер зазора
+    const PIPE_W = T() * 2;
+    while (x < shipEnd - PIPE_W*3) {
+      const centerY = H*0.25 + Math.random()*(H*0.45);
+      segs.push({
+        t:'pipe',
+        x, pw: PIPE_W,
+        topH:  centerY - GAP()/2,       // высота верхней трубы (от 0)
+        botY:  centerY + GAP()/2,        // нижняя труба начинается тут
+        botH:  H - (centerY + GAP()/2),
+      });
+      x += PIPE_W + T()*(3+Math.floor(Math.random()*4));
+    }
+
+    // Конец секции корабля
+    segs.push({t:'ship_end', x: shipEnd});
+    x = shipEnd + T()*3;
+
+    // Снова куб — финальная секция
+    while (x < len - T()*8) {
+      const r = Math.random();
+      if (r < 0.22) {
+        const n = 1+Math.floor(Math.random()*4);
+        for (let i=0;i<n;i++) segs.push({t:'spike',x:x+i*T(),y:GY()});
+        x += n*T()+T()*(1+Math.floor(Math.random()*2));
+      } else if (r < 0.40) {
+        const by=GY()-T(); segs.push({t:'block',x,y:by});
+        segs.push({t:'spike',x,y:by});
+        x += T()*(2+Math.floor(Math.random()*2));
+      } else if (r < 0.54) {
+        const n=2+Math.floor(Math.random()*3);
+        for(let i=0;i<n;i++){
+          segs.push({t:'block',x:x+i*T(),y:GY()-T()});
+          if(Math.random()<0.5) segs.push({t:'spike',x:x+i*T(),y:GY()-T()});
+        }
+        x+=(n+1)*T();
+      } else {
+        x += T()*(1+Math.floor(Math.random()*2));
+      }
+    }
+
+  } else if (lvl === 1) {
+    while (x < len - T()*8) {
+      const r = Math.random();
+      if (r < 0.12) {
+        segs.push({t:'spike',x,y:GY()});
+        x += T()*(4+Math.floor(Math.random()*5));
+      } else if (r < 0.20) {
+        segs.push({t:'block',x,y:GY()-T()});
+        x += T()*(3+Math.floor(Math.random()*4));
+      } else {
+        x += T()*(2+Math.floor(Math.random()*4));
+      }
+    }
+  } else {
+    while (x < len - T()*8) {
+      const r = Math.random();
+      if (r < 0.15) {
+        const n=1+Math.floor(Math.random()*2);
+        for(let i=0;i<n;i++) segs.push({t:'spike',x:x+i*T(),y:GY()});
+        x+=n*T()+T()*(2+Math.floor(Math.random()*3));
+      } else if (r < 0.30) {
+        const by=GY()-T(); segs.push({t:'block',x,y:by});
+        if(Math.random()<0.6) segs.push({t:'spike',x,y:by});
+        x+=T()*(2+Math.floor(Math.random()*3));
+      } else if (r < 0.44) {
+        const n=1+Math.floor(Math.random()*2);
+        for(let i=0;i<n;i++){
+          segs.push({t:'block',x:x+i*T(),y:GY()-T()});
+          if(i===n-1&&Math.random()<0.5) segs.push({t:'spike',x:x+i*T(),y:GY()-T()});
+        }
+        x+=(n+1)*T()+T()*Math.floor(Math.random()*2);
+      } else {
+        x+=T()*(1+Math.floor(Math.random()*3));
+      }
     }
   }
-  segments.push({ type: 'end', x: totalLen });
-  return { segments, totalLen };
+
+  segs.push({t:'end',x:len});
+  // Сортируем по x чтобы break работал правильно
+  segs.sort((a,b)=>a.x-b.x);
+  return {segs,len};
 }
 
-// --- Player ---
-function resetPlayer() {
-  player = {
-    x: W() * 0.18,
-    y: GROUND() - CUBE_SIZE(),
-    vy: 0, onGround: false,
-    angle: 0, alive: true,
-    trail: []
-  };
-  cameraX = 0; bgX = 0; tick = 0; particles = [];
-  palette = PALETTES[Math.floor(Math.random() * PALETTES.length)];
-}
-
-function init() {
-  level = genLevel();
+function startGame(lvl) {
+  currentLevel = lvl||currentLevel;
+  pal = LEVEL_PALS[currentLevel];
+  level = makeLevel(currentLevel);
   attempts++;
-  document.getElementById('attempts-display').textContent = `Попытки: ${attempts}`;
-  resetPlayer();
-  state = 'playing';
+  camX=0; bgX=0; tick=0; parts=[];
+  pressing = false;
+  player = {
+    x: W*0.15, y: GY()-CS(),
+    vy:0, onGround:false, alive:true,
+    angle:0, trail:[], canDouble:false,
+    mode:'cube' // 'cube' | 'ship'
+  };
+  state='playing';
+  document.getElementById('att').textContent='Ур.'+currentLevel+' · Попытка '+attempts;
+  document.getElementById('pct').textContent='0%';
+  updateModeHint();
 }
 
-function jump() {
-  if (state === 'playing' && player.alive && player.onGround) {
-    player.vy = JUMP_V();
-    player.onGround = false;
-    haptic('jump');
-    spawnJumpParticles();
-  }
+function updateModeHint() {
+  const hint = document.getElementById('mode-hint');
+  if (!player) { hint.textContent=''; return; }
+  if (player.mode==='ship') hint.textContent='🚀 Зажми экран чтобы лететь вверх';
+  else hint.textContent='';
 }
 
-// --- Particles ---
-function spawnJumpParticles() {
-  for (let i = 0; i < 7; i++) {
-    particles.push({
-      x: player.x + CUBE_SIZE() / 2, y: player.y + CUBE_SIZE(),
-      vx: (Math.random() - 0.5) * TILE() * 0.08,
-      vy: -(Math.random() * TILE() * 0.06 + TILE() * 0.02),
-      life: 1, size: TILE() * 0.08 + Math.random() * TILE() * 0.08,
-      color: palette[Math.floor(Math.random() * palette.length)]
-    });
-  }
-}
-
-function spawnDeathParticles() {
-  for (let i = 0; i < 22; i++) {
-    const angle = (Math.PI * 2 * i) / 22 + Math.random() * 0.3;
-    const spd = TILE() * (0.05 + Math.random() * 0.1);
-    particles.push({
-      x: player.x + CUBE_SIZE() / 2, y: player.y + CUBE_SIZE() / 2,
-      vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd,
-      life: 1, size: TILE() * (0.08 + Math.random() * 0.12),
-      color: palette[Math.floor(Math.random() * palette.length)]
-    });
-  }
-}
-
-// --- Collision ---
-function checkCollision(obj) {
-  const pad = CUBE_SIZE() * 0.1;
-  const px = player.x + pad, py = player.y + pad;
-  const pw = CUBE_SIZE() - pad * 2, ph = CUBE_SIZE() - pad * 2;
-  const T = TILE();
-
-  if (obj.type === 'block') {
-    const bx = obj.x - cameraX, by = obj.y;
-    if (px < bx + T && px + pw > bx && py < by + T && py + ph > by) {
-      if (player.vy >= 0 && py + ph - player.vy <= by + 3) {
-        player.y = by - CUBE_SIZE(); player.vy = 0; player.onGround = true;
-        return false;
-      }
-      return true;
+// Прыжок/управление
+function pressStart() {
+  if (state!=='playing'||!player||!player.alive) return;
+  pressing = true;
+  if (player.mode==='cube') {
+    if (player.onGround) {
+      player.vy=JMP(); player.onGround=false; player.canDouble=true;
+      haptic('jump'); spawnJumpParts(false);
+    } else if (player.canDouble) {
+      player.vy=JMP()*0.9; player.canDouble=false;
+      haptic('jump'); spawnJumpParts(false);
     }
   }
-  if (obj.type === 'spike') {
-    const sx = obj.x - cameraX;
-    const midX = sx + T / 2;
-    const tip = { x: midX, y: obj.y - T };
-    const bl = { x: sx, y: obj.y }, br = { x: sx + T, y: obj.y };
-    function tri(px, py) {
-      const d1 = (px - bl.x) * (tip.y - bl.y) - (tip.x - bl.x) * (py - bl.y);
-      const d2 = (px - tip.x) * (br.y - tip.y) - (br.x - tip.x) * (py - tip.y);
-      const d3 = (px - br.x) * (bl.y - br.y) - (bl.x - br.x) * (py - br.y);
-      return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
-    }
-    const corners = [
-      [px + pad, py + pad], [px + pw - pad, py + pad],
-      [px + pad, py + ph - pad], [px + pw - pad, py + ph - pad]
-    ];
-    for (const [cx, cy] of corners) if (tri(cx, cy)) return true;
+}
+function pressEnd() { pressing=false; }
+
+function spawnJumpParts(isShip) {
+  const cx = player.x+CS()/2, cy = isShip ? player.y+CS()/2 : player.y+CS();
+  for(let i=0;i<6;i++) parts.push({
+    x:cx, y:cy,
+    vx:(Math.random()-0.5)*4, vy:-(1+Math.random()*3),
+    life:1, r:3+Math.random()*5, c:pal[Math.floor(Math.random()*pal.length)]
+  });
+}
+
+// Тяга корабля — частицы сзади
+function spawnShipTrail() {
+  if (tick%2!==0) return;
+  parts.push({
+    x: player.x, y: player.y+CS()*0.5,
+    vx: -(2+Math.random()*3), vy: (Math.random()-0.5)*2,
+    life:0.7, r:3+Math.random()*5,
+    c: pal[Math.floor(Math.random()*pal.length)]
+  });
+}
+
+// Коллизии
+function ptInTri(px,py,ax,ay,bx,by,cx,cy) {
+  const d1=(px-bx)*(ay-by)-(ax-bx)*(py-by);
+  const d2=(px-cx)*(by-cy)-(bx-cx)*(py-cy);
+  const d3=(px-ax)*(cy-ay)-(cx-ax)*(py-ay);
+  return !((d1<0||d2<0||d3<0)&&(d1>0||d2>0||d3>0));
+}
+function checkSpike(obj) {
+  const sx=obj.x-camX, pad=CS()*0.15;
+  const px=player.x+pad,py=player.y+pad,pw=CS()-pad*2,ph=CS()-pad*2;
+  const tip=[sx+T()/2,obj.y-T()],bl=[sx,obj.y],br=[sx+T(),obj.y];
+  const corners=[[px,py],[px+pw,py],[px,py+ph],[px+pw,py+ph],[px+pw/2,py]];
+  for(const [cx,cy] of corners) if(ptInTri(cx,cy,tip[0],tip[1],bl[0],bl[1],br[0],br[1])) return true;
+  return false;
+}
+function checkPipe(obj) {
+  const sx=obj.x-camX;
+  const pad=CS()*0.12;
+  const px=player.x+pad,py=player.y+pad,pw=CS()-pad*2,ph=CS()-pad*2;
+  if(px<sx+obj.pw&&px+pw>sx) {
+    // Верхняя труба
+    if(py<obj.topH) return true;
+    // Нижняя труба
+    if(py+ph>obj.botY) return true;
   }
   return false;
 }
 
-function getProgress() {
-  return Math.min(100, Math.round((cameraX / (level.totalLen - W())) * 100));
+function die() {
+  player.alive=false; haptic('die');
+  const cx=player.x+CS()/2,cy=player.y+CS()/2;
+  for(let i=0;i<28;i++){
+    const a=(Math.PI*2/28)*i+Math.random()*0.2,spd=3+Math.random()*6;
+    parts.push({x:cx,y:cy,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:1,r:4+Math.random()*8,c:pal[Math.floor(Math.random()*pal.length)]});
+  }
+  const pct=getPercent();
+  if(pct>bests[currentLevel]){bests[currentLevel]=pct;updateBestLabels();}
+  setTimeout(()=>showOverlay('die'),800);
 }
 
-// --- Update ---
+function getPercent(){return Math.min(100,Math.round(camX/(level.len-W)*100));}
+
+// Обновление
 function update() {
-  if (state !== 'playing' || !player.alive) return;
+  if(!level||!player||state!=='playing'||!player.alive) return;
   tick++;
+  camX+=SPD(); bgX-=SPD()*0.25;
 
-  const spd = SPEED();
-  cameraX += spd;
-  bgX -= spd * 0.3;
-
-  player.vy += GRAVITY();
-  player.y += player.vy;
-  player.angle += 5;
-
-  player.trail.push({ x: player.x, y: player.y, age: 0 });
-  if (player.trail.length > 10) player.trail.shift();
-  player.trail.forEach(t => t.age++);
-
-  player.onGround = false;
-  if (player.y >= GROUND() - CUBE_SIZE()) {
-    player.y = GROUND() - CUBE_SIZE();
-    player.vy = 0; player.onGround = true;
-  }
-
-  for (const obj of level.segments) {
-    const screenX = obj.x - cameraX;
-    if (screenX > W() + 100) break;
-    if (screenX < -TILE() * 2) continue;
-    if (obj.type === 'end') {
-      if (cameraX >= obj.x - W()) { state = 'win'; haptic('win'); showOverlay('win'); return; }
-      continue;
+  // Проверяем переключение режима
+  for(const obj of level.segs){
+    if(obj.x-camX>W) break;
+    if(obj.t==='ship_start'&&camX>=obj.x&&player.mode==='cube'){
+      player.mode='ship'; player.vy=0;
+      updateModeHint();
+      // Вспышка
+      for(let i=0;i<12;i++) parts.push({
+        x:player.x+CS()/2,y:player.y+CS()/2,
+        vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,
+        life:1,r:5+Math.random()*8,c:pal[1]
+      });
     }
-    if (checkCollision(obj)) {
-      player.alive = false;
-      haptic('death');
-      spawnDeathParticles();
-      setTimeout(() => { state = 'dead'; showOverlay('dead'); }, 700);
-      return;
+    if(obj.t==='ship_end'&&camX>=obj.x&&player.mode==='ship'){
+      player.mode='cube'; player.vy=0;
+      player.y=GY()-CS();
+      player.onGround=true; player.canDouble=false;
+      updateModeHint();
+      for(let i=0;i<12;i++) parts.push({
+        x:player.x+CS()/2,y:player.y+CS()/2,
+        vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,
+        life:1,r:5+Math.random()*8,c:pal[0]
+      });
     }
   }
 
-  particles.forEach(p => {
-    p.x += p.vx; p.y += p.vy; p.vy += GRAVITY() * 0.5;
-    p.life -= 0.04; p.size *= 0.97;
-  });
-  particles = particles.filter(p => p.life > 0);
+  if(player.mode==='cube'){
+    // Физика куба
+    player.vy+=GRV(); player.y+=player.vy; player.angle+=4.5;
+    player.trail.push({x:player.x,y:player.y,a:0,mode:'cube'});
+    if(player.trail.length>9) player.trail.shift();
+    player.trail.forEach(t=>t.a++);
+    player.onGround=false;
+    if(player.y>=GY()-CS()){player.y=GY()-CS();player.vy=0;player.onGround=true;player.canDouble=false;}
 
-  const pct = getProgress();
-  document.getElementById('score-display').textContent = pct + '%';
-  document.getElementById('percent-fill').style.width = pct + '%';
-  if (pct > bestPercent) bestPercent = pct;
+    // Коллизии куба
+    for(const obj of level.segs){
+      const sx=obj.x-camX;
+      if(sx>W+T()*2) break;
+      if(sx<-T()*3) continue;
+      if(obj.t==='end'){if(camX>=obj.x-W){state='win';bests[currentLevel]=100;haptic('win');updateBestLabels();showOverlay('win');return;}continue;}
+      if(obj.t==='block'){
+        const bx=sx,by=obj.y,pad=2;
+        const px=player.x+pad,py=player.y+pad,pw=CS()-pad*2,ph=CS()-pad*2;
+        if(px<bx+T()&&px+pw>bx&&py<by+T()&&py+ph>by){
+          if(player.vy>=0&&player.y+CS()-player.vy<=by+4){player.y=by-CS();player.vy=0;player.onGround=true;player.canDouble=false;}
+          else{die();return;}
+        }
+      }
+      if(obj.t==='spike'){if(checkSpike(obj)){die();return;}}
+    }
+
+  } else {
+    // Физика корабля
+    if(pressing){
+      player.vy+=SHIP_LIFT();
+    } else {
+      player.vy+=SHIP_GRV();
+    }
+    // Ограничение скорости
+    const maxV=SHIP_MAX();
+    if(player.vy>maxV) player.vy=maxV;
+    if(player.vy<-maxV) player.vy=-maxV;
+
+    player.y+=player.vy;
+    player.angle = player.vy*2; // наклон по скорости
+
+    player.trail.push({x:player.x,y:player.y,a:0,mode:'ship'});
+    if(player.trail.length>12) player.trail.shift();
+    player.trail.forEach(t=>t.a++);
+
+    // Границы экрана
+    if(player.y<0){player.y=0;player.vy=0;}
+    if(player.y>H-CS()){player.y=H-CS();player.vy=0;}
+
+    spawnShipTrail();
+
+    // Коллизии корабля
+    for(const obj of level.segs){
+      const sx=obj.x-camX;
+      if(sx>W+T()*2) break;
+      if(sx<-T()*4) continue;
+      if(obj.t==='end'){if(camX>=obj.x-W){state='win';bests[currentLevel]=100;haptic('win');updateBestLabels();showOverlay('win');return;}continue;}
+      if(obj.t==='pipe'){if(checkPipe(obj)){die();return;}}
+    }
+  }
+
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life-=0.035;p.r*=0.97;});
+  parts=parts.filter(p=>p.life>0);
+  document.getElementById('pct').textContent=getPercent()+'%';
 }
 
-// --- Draw ---
+// === РИСОВАНИЕ ===
 function drawBg() {
-  const grad = ctx.createLinearGradient(0, 0, 0, H());
-  grad.addColorStop(0, '#0d0025');
-  grad.addColorStop(0.6, '#1a0533');
-  grad.addColorStop(1, '#0a001f');
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, W(), H());
-
-  ctx.strokeStyle = 'rgba(120,60,200,0.1)';
-  ctx.lineWidth = 1;
-  const gs = Math.round(W() / 8);
-  const gridOff = bgX % gs;
-  for (let x = gridOff - gs; x < W() + gs; x += gs) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H()); ctx.stroke();
+  const g=ctx.createLinearGradient(0,0,0,H);
+  if(player&&player.mode==='ship'){
+    // Космический фон для режима корабля
+    g.addColorStop(0,'#000010');g.addColorStop(1,'#0a001a');
+  } else {
+    g.addColorStop(0,'#080018');g.addColorStop(1,'#1a0035');
   }
-  for (let y = 0; y < H(); y += gs) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W(), y); ctx.stroke();
-  }
-
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  for (let i = 0; i < 35; i++) {
-    const sx = ((i * 173 + Math.floor(bgX / 10) * 7) % W() + W()) % W();
-    const sy = (i * 97 + 40) % (H() * 0.65);
-    ctx.fillRect(sx, sy, 1.5, 1.5);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const off=((bgX%(T()*2))+T()*2)%(T()*2);
+  ctx.strokeStyle='rgba(100,40,180,0.13)';ctx.lineWidth=1;
+  for(let x=off-T()*2;x<W+T()*2;x+=T()*2){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=T()*2){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // Звёзды
+  ctx.fillStyle='rgba(255,255,255,0.8)';
+  for(let i=0;i<50;i++){
+    const sx=((i*179+Math.floor(-bgX*0.1)*13)%W+W)%W;
+    const sy=(i*83+20)%(H*0.85);
+    ctx.fillRect(sx,sy,0.5+(i%3)*0.5,0.5+(i%3)*0.5);
   }
 }
 
 function drawGround() {
-  const T = TILE();
-  const G = GROUND();
-  const tileOff = -(cameraX % T);
-  for (let x = tileOff - T; x < W() + T; x += T) {
-    ctx.fillStyle = '#2a1060';
-    ctx.fillRect(x, G, T, H() - G);
-    ctx.strokeStyle = '#3d1a8a'; ctx.lineWidth = 1;
-    ctx.strokeRect(x, G, T, T);
+  if(player&&player.mode==='ship') return; // В режиме корабля пол не рисуем
+  const gy=GY(),off=-(camX%T());
+  for(let x=off-T();x<W+T();x+=T()){
+    ctx.fillStyle='#1e0b4a';ctx.fillRect(x,gy,T(),H-gy);
+    ctx.strokeStyle='#2d1570';ctx.lineWidth=1;ctx.strokeRect(x,gy,T(),T());
+    ctx.fillStyle='rgba(120,60,220,0.15)';ctx.fillRect(x+2,gy+2,T()-4,4);
   }
-  ctx.fillStyle = palette[0];
-  ctx.fillRect(0, G, W(), 3);
+  ctx.fillStyle=pal[0];ctx.fillRect(0,gy,W,2);
 }
 
 function drawObjects() {
-  const T = TILE();
-  for (const obj of level.segments) {
-    const sx = obj.x - cameraX;
-    if (sx > W() + T) break;
-    if (sx < -T * 2) continue;
+  if(!level) return;
+  for(const obj of level.segs){
+    const sx=obj.x-camX;
+    if(sx>W+T()*3) break;
+    if(sx<-T()*3) continue;
 
-    if (obj.type === 'block') {
-      const g = ctx.createLinearGradient(sx, obj.y, sx + T, obj.y + T);
-      g.addColorStop(0, palette[0]); g.addColorStop(1, palette[1]);
-      ctx.fillStyle = g;
-      ctx.fillRect(sx, obj.y, T, T);
-      ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1;
-      ctx.strokeRect(sx, obj.y, T, T);
-      ctx.fillStyle = 'rgba(255,255,255,0.12)';
-      ctx.fillRect(sx + 3, obj.y + 3, T - 6, T * 0.12);
+    if(obj.t==='block'){
+      const bg=ctx.createLinearGradient(sx,obj.y,sx+T(),obj.y+T());
+      bg.addColorStop(0,pal[0]);bg.addColorStop(1,pal[1]);
+      ctx.fillStyle=bg;ctx.fillRect(sx,obj.y,T(),T());
+      ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1.5;ctx.strokeRect(sx,obj.y,T(),T());
+      ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fillRect(sx+3,obj.y+3,T()-6,6);
     }
-    if (obj.type === 'spike') {
-      const midX = sx + T / 2;
-      ctx.beginPath();
-      ctx.moveTo(sx, obj.y); ctx.lineTo(midX, obj.y - T); ctx.lineTo(sx + T, obj.y);
-      ctx.closePath();
-      const sg = ctx.createLinearGradient(sx, obj.y - T, sx, obj.y);
-      sg.addColorStop(0, palette[2] || '#ff4dff');
-      sg.addColorStop(1, palette[1]);
-      ctx.fillStyle = sg; ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 0.5; ctx.stroke();
+
+    if(obj.t==='spike'){
+      const mid=sx+T()/2;
+      ctx.beginPath();ctx.moveTo(sx,obj.y);ctx.lineTo(mid,obj.y-T());ctx.lineTo(sx+T(),obj.y);ctx.closePath();
+      const sg=ctx.createLinearGradient(sx,obj.y-T(),sx,obj.y);
+      sg.addColorStop(0,pal[2]);sg.addColorStop(1,pal[1]);
+      ctx.fillStyle=sg;ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;ctx.stroke();
+    }
+
+    if(obj.t==='pipe'){
+      const pw=obj.pw;
+      // Верхняя труба
+      const tg=ctx.createLinearGradient(sx,0,sx+pw,0);
+      tg.addColorStop(0,pal[0]);tg.addColorStop(1,pal[1]);
+      ctx.fillStyle=tg;
+      ctx.fillRect(sx,0,pw,obj.topH);
+      ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
+      ctx.strokeRect(sx,0,pw,obj.topH);
+      // Шапка верхней трубы
+      ctx.fillStyle=pal[1];ctx.fillRect(sx-4,obj.topH-10,pw+8,10);
+      ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.strokeRect(sx-4,obj.topH-10,pw+8,10);
+
+      // Нижняя труба
+      const bg2=ctx.createLinearGradient(sx,obj.botY,sx+pw,obj.botY);
+      bg2.addColorStop(0,pal[0]);bg2.addColorStop(1,pal[1]);
+      ctx.fillStyle=bg2;
+      ctx.fillRect(sx,obj.botY,pw,obj.botH);
+      ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
+      ctx.strokeRect(sx,obj.botY,pw,obj.botH);
+      // Шапка нижней трубы
+      ctx.fillStyle=pal[1];ctx.fillRect(sx-4,obj.botY,pw+8,10);
+      ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.strokeRect(sx-4,obj.botY,pw+8,10);
+
+      // Блики на трубах
+      ctx.fillStyle='rgba(255,255,255,0.1)';
+      ctx.fillRect(sx+3,0,4,obj.topH);
+      ctx.fillRect(sx+3,obj.botY,4,obj.botH);
+    }
+
+    // Линия перехода режимов
+    if(obj.t==='ship_start'||obj.t==='ship_end'){
+      const color = obj.t==='ship_start'?'rgba(168,85,247,0.6)':'rgba(16,185,129,0.6)';
+      ctx.strokeStyle=color;ctx.lineWidth=3;ctx.setLineDash([8,6]);
+      ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke();
+      ctx.setLineDash([]);
+      // Иконка
+      ctx.fillStyle=color;ctx.font='bold 14px Arial';ctx.textAlign='center';
+      ctx.fillText(obj.t==='ship_start'?'🚀 КОРАБЛЬ':'⬛ КУБ', sx, 30);
     }
   }
 }
 
 function drawPlayer() {
-  const CS = CUBE_SIZE();
-  if (!player.alive) return;
+  if(!player||!player.alive) return;
+  const cs=CS();
 
-  player.trail.forEach(t => {
-    const alpha = (1 - t.age / 12) * 0.35;
-    const size = CS * (1 - t.age / 16);
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = palette[0];
-    ctx.fillRect(t.x, t.y, size, size);
-    ctx.restore();
+  // Трейл
+  player.trail.forEach(t=>{
+    const a=(1-t.a/12)*0.3,s=cs*(1-t.a/16);if(s<=0)return;
+    ctx.save();ctx.globalAlpha=a;ctx.fillStyle=pal[0];
+    ctx.fillRect(t.x+(cs-s)/2,t.y+(cs-s)/2,s,s);ctx.restore();
   });
 
   ctx.save();
-  ctx.translate(player.x + CS / 2, player.y + CS / 2);
-  ctx.rotate((player.angle * Math.PI) / 180);
+  ctx.translate(player.x+cs/2,player.y+cs/2);
+  ctx.rotate(player.angle*Math.PI/180);
 
-  const pg = ctx.createLinearGradient(-CS/2, -CS/2, CS/2, CS/2);
-  pg.addColorStop(0, palette[0]); pg.addColorStop(1, palette[1]);
-  ctx.fillStyle = pg;
-  ctx.beginPath();
-  ctx.roundRect(-CS/2, -CS/2, CS, CS, 4);
-  ctx.fill();
+  if(player.mode==='cube'){
+    // Куб
+    const cg=ctx.createLinearGradient(-cs/2,-cs/2,cs/2,cs/2);
+    cg.addColorStop(0,pal[0]);cg.addColorStop(1,pal[1]);
+    ctx.fillStyle=cg;
+    ctx.beginPath();ctx.roundRect(-cs/2,-cs/2,cs,cs,5);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=2;ctx.stroke();
+    const r=cs*0.28;ctx.fillStyle=pal[2];
+    ctx.beginPath();ctx.moveTo(0,-r);ctx.lineTo(r*0.85,r*0.7);ctx.lineTo(-r*0.85,r*0.7);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(-cs/2+4,-cs/2+4,cs-8,6);
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 2; ctx.stroke();
-
-  ctx.fillStyle = palette[2] || '#fff';
-  const inner = CS * 0.33;
-  ctx.beginPath();
-  ctx.moveTo(0, -inner);
-  ctx.lineTo(inner * 0.7, inner * 0.7);
-  ctx.lineTo(-inner * 0.7, inner * 0.7);
-  ctx.closePath(); ctx.fill();
-
+  } else {
+    // Корабль — треугольник с деталями
+    const w=cs*1.3, h=cs*0.7;
+    // Тело корабля
+    const sg=ctx.createLinearGradient(-w/2,0,w/2,0);
+    sg.addColorStop(0,pal[1]);sg.addColorStop(1,pal[0]);
+    ctx.fillStyle=sg;
+    ctx.beginPath();
+    ctx.moveTo(w/2,0);           // нос
+    ctx.lineTo(-w/2,-h/2);       // верх хвоста
+    ctx.lineTo(-w/3,0);          // центр хвоста
+    ctx.lineTo(-w/2,h/2);        // низ хвоста
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1.5;ctx.stroke();
+    // Кабина
+    ctx.fillStyle=pal[2];
+    ctx.beginPath();ctx.arc(w*0.05,0,h*0.28,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;ctx.stroke();
+    // Двигатель (огонь) - только при нажатии
+    if(pressing){
+      const fg=ctx.createRadialGradient(-w/2,0,0,-w/2,0,h*0.5);
+      fg.addColorStop(0,'rgba(255,200,50,0.9)');
+      fg.addColorStop(0.5,'rgba(255,100,20,0.6)');
+      fg.addColorStop(1,'rgba(255,50,0,0)');
+      ctx.fillStyle=fg;
+      ctx.beginPath();ctx.arc(-w/2,0,h*(0.3+Math.random()*0.25),0,Math.PI*2);ctx.fill();
+    }
+  }
   ctx.restore();
+
+  // Свечение
+  if(player.mode==='ship'){
+    ctx.save();ctx.globalAlpha=0.15;
+    ctx.fillStyle=pal[0];
+    ctx.beginPath();ctx.arc(player.x+cs/2,player.y+cs/2,cs*1.2,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawParticles() {
-  particles.forEach(p => {
-    ctx.save();
-    ctx.globalAlpha = p.life;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.roundRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size, 2);
-    ctx.fill();
-    ctx.restore();
+  if(!parts) return;
+  parts.forEach(p=>{
+    ctx.save();ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.c;
+    ctx.beginPath();ctx.roundRect(p.x-p.r/2,p.y-p.r/2,p.r,p.r,2);ctx.fill();ctx.restore();
   });
 }
 
-function draw() {
-  ctx.clearRect(0, 0, W(), H());
-  drawBg(); drawGround(); drawObjects(); drawParticles(); drawPlayer();
+// === ОВЕРЛЕЙ ===
+function updateBestLabels(){
+  for(let i=1;i<=3;i++){
+    document.getElementById('best'+i).textContent=bests[i]>0?'Рекорд: '+bests[i]+'%':'Рекорд: —';
+  }
 }
 
-// --- Overlay ---
-function showOverlay(type) {
-  const ol = document.getElementById('overlay');
-  const title = document.getElementById('ol-title');
-  const sub = document.getElementById('ol-sub');
-  const btn = document.getElementById('play-btn');
-  const best = document.getElementById('best-label');
-  const attInfo = document.getElementById('attempts-info');
-
-  ol.style.display = 'flex';
-
-  if (type === 'dead') {
-    title.textContent = 'ПОПЫТКА ПРОВАЛЕНА';
-    title.style.background = 'linear-gradient(135deg,#ff4444,#ff6b35,#ffaa00)';
-    title.style.webkitBackgroundClip = 'text';
-    title.style.webkitTextFillColor = 'transparent';
-    sub.textContent = `Ты добрался до ${getProgress()}%`;
-    btn.textContent = 'СНОВА';
-    best.textContent = bestPercent > 0 ? `Рекорд: ${bestPercent}%` : '';
-    attInfo.textContent = `Попытка #${attempts}`;
-  } else if (type === 'win') {
-    title.textContent = 'УРОВЕНЬ ПРОЙДЕН!';
-    title.style.background = 'linear-gradient(135deg,#43e97b,#f0c040,#ff6b35)';
-    title.style.webkitBackgroundClip = 'text';
-    title.style.webkitTextFillColor = 'transparent';
-    sub.textContent = '100% — Ты сделал это! 🎉';
-    btn.textContent = 'ЕЩЁ РАЗ';
-    best.textContent = ''; attInfo.textContent = '';
-    bestPercent = 100;
+function showOverlay(type){
+  document.getElementById('level-screen').style.display='none';
+  document.getElementById('mode-hint').textContent='';
+  const ol=document.getElementById('overlay');
+  const title=document.getElementById('ol-title');
+  const sub=document.getElementById('ol-sub');
+  const olB=document.getElementById('ol-best');
+  const olA=document.getElementById('ol-att');
+  const playBtn=document.getElementById('play-btn');
+  if(type==='die'){
+    title.textContent='ПОПЫТКА ПРОВАЛЕНА';
+    title.style.background='linear-gradient(135deg,#ef4444,#f97316,#facc15)';
+    title.style.webkitBackgroundClip='text';title.style.webkitTextFillColor='transparent';
+    sub.textContent='Ты добрался до '+getPercent()+'%  ·  Уровень '+currentLevel;
+    playBtn.textContent='СНОВА';
+    olB.textContent=bests[currentLevel]>0?'Рекорд: '+bests[currentLevel]+'%':'';
+    olA.textContent='Попытка #'+attempts;
+  } else if(type==='win'){
+    title.textContent='ПОБЕДА! 🎉';
+    title.style.background='linear-gradient(135deg,#4ade80,#facc15,#ff6b35)';
+    title.style.webkitBackgroundClip='text';title.style.webkitTextFillColor='transparent';
+    sub.textContent='Уровень '+currentLevel+' пройден на 100%!';
+    playBtn.textContent='ЕЩЁ РАЗ';olB.textContent='';olA.textContent='';
   } else {
-    title.textContent = 'GEOMETRY DASH';
-    title.style.background = 'linear-gradient(135deg,#f0c040,#ff6b35,#ff4dff)';
-    title.style.webkitBackgroundClip = 'text';
-    title.style.webkitTextFillColor = 'transparent';
-    sub.textContent = 'Тапни по экрану для прыжка';
-    btn.textContent = 'ИГРАТЬ';
-    best.textContent = bestPercent > 0 ? `Рекорд: ${bestPercent}%` : '';
-    attInfo.textContent = attempts > 0 ? `Попытки: ${attempts}` : '';
+    title.textContent='GEOMETRY DASH';
+    title.style.background='linear-gradient(135deg,#f0c040,#ff6b35,#ff4dff)';
+    title.style.webkitBackgroundClip='text';title.style.webkitTextFillColor='transparent';
+    sub.textContent='Тапни по экрану для прыжка';
+    playBtn.textContent='ИГРАТЬ';olB.textContent='';olA.textContent='';
   }
+  ol.style.display='flex';
 }
 
-// --- Game loop ---
-function gameLoop() {
-  update(); draw();
-  requestAnimationFrame(gameLoop);
+function showLevelScreen(){
+  updateBestLabels();
+  document.getElementById('overlay').style.display='none';
+  document.getElementById('level-screen').style.display='flex';
 }
 
-// --- Input ---
-document.getElementById('play-btn').addEventListener('click', e => {
+// === GAME LOOP ===
+function loop(){
+  update();
+  drawBg();drawGround();drawObjects();drawParticles();drawPlayer();
+  requestAnimationFrame(loop);
+}
+
+// === СОБЫТИЯ ===
+document.getElementById('play-btn').addEventListener('click',e=>{
   e.stopPropagation();
-  document.getElementById('overlay').style.display = 'none';
-  init();
+  document.getElementById('overlay').style.display='none';
+  startGame();
+});
+document.getElementById('levels-btn').addEventListener('click',e=>{e.stopPropagation();showLevelScreen();});
+document.getElementById('back-btn').addEventListener('click',e=>{e.stopPropagation();document.getElementById('level-screen').style.display='none';showOverlay('menu');});
+document.querySelectorAll('.level-card').forEach(card=>{
+  card.addEventListener('click',e=>{
+    e.stopPropagation();
+    document.getElementById('level-screen').style.display='none';
+    startGame(parseInt(card.dataset.level));
+  });
 });
 
-document.getElementById('tap-area').addEventListener('touchstart', e => {
-  if (document.getElementById('overlay').style.display !== 'none') return;
-  e.preventDefault();
-  if (state === 'playing') jump();
-}, { passive: false });
+// Тач события
+document.addEventListener('touchstart',e=>{
+  if(document.getElementById('overlay').style.display!=='none') return;
+  if(document.getElementById('level-screen').style.display!=='none') return;
+  e.preventDefault(); pressStart();
+},{passive:false});
 
-document.getElementById('tap-area').addEventListener('click', () => {
-  if (document.getElementById('overlay').style.display !== 'none') return;
-  if (state === 'playing') jump();
+document.addEventListener('touchend',e=>{
+  e.preventDefault(); pressEnd();
+},{passive:false});
+
+document.addEventListener('mousedown',e=>{
+  const blocked=['play-btn','levels-btn','back-btn'];
+  if(blocked.includes(e.target.id)||e.target.closest('.level-card')||e.target.closest('#level-screen')) return;
+  if(document.getElementById('overlay').style.display!=='none') return;
+  pressStart();
 });
+document.addEventListener('mouseup',()=>pressEnd());
 
-document.addEventListener('keydown', e => {
-  if (e.code === 'Space' || e.key === ' ') {
-    e.preventDefault();
-    if (state === 'menu' || state === 'dead' || state === 'win') {
-      document.getElementById('overlay').style.display = 'none';
-      init();
-    } else jump();
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Space') return; e.preventDefault();
+  if(document.getElementById('overlay').style.display!=='none'){
+    document.getElementById('overlay').style.display='none';startGame();return;
   }
+  pressStart();
 });
+document.addEventListener('keyup',e=>{if(e.code==='Space') pressEnd();});
+document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
 
-// Prevent scroll/zoom
-document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-document.addEventListener('gesturestart', e => e.preventDefault());
-
-// --- Start ---
 showOverlay('menu');
-draw();
-gameLoop();
+loop();
 </script>
 </body>
 </html>
