@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Geometry Dash</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #1a0533; }
+#gd-wrap {
+  font-family: 'Arial Black', Arial, sans-serif;
+  background: #1a0533;
+  width: 100vw; height: 100vh;
+  overflow: hidden; position: relative;
+  touch-action: none;
+}
+canvas { display: block; width: 100%; height: 100%; }
+#ui {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 12px 16px; pointer-events: none;
+}
+#score-display {
+  color: #fff; font-size: 20px; font-weight: 900;
+  text-shadow: 0 0 10px #f0c040, 2px 2px 0 #000;
+  letter-spacing: 1px;
+}
+#percent-bar {
+  background: rgba(0,0,0,0.4); border-radius: 20px;
+  height: 8px; width: 160px; margin-top: 6px;
+  overflow: hidden; border: 1px solid rgba(255,255,255,0.2);
+}
+#percent-fill {
+  height: 100%; background: linear-gradient(90deg,#f0c040,#ff6b35);
+  border-radius: 20px; width: 0%;
+}
+#overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(10,0,30,0.88);
+  color: #fff;
+}
+#overlay h1 {
+  font-size: clamp(24px, 7vw, 40px);
+  font-weight: 900;
+  background: linear-gradient(135deg,#f0c040,#ff6b35,#ff4dff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px; letter-spacing: 2px;
+  text-align: center; padding: 0 16px;
+}
+#overlay p { color: rgba(255,255,255,0.65); margin-bottom: 28px; font-size: 14px; text-align: center; padding: 0 24px; }
+#overlay .best { color: #f0c040; font-size: 14px; margin-top: 10px; font-weight: 700; }
+#overlay .attempts-info { color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 6px; }
+#play-btn {
+  background: linear-gradient(135deg,#f0c040,#ff6b35);
+  border: none; border-radius: 30px; color: #1a0533;
+  font-size: 18px; font-weight: 900; padding: 14px 48px;
+  cursor: pointer; letter-spacing: 1px;
+  box-shadow: 0 4px 24px rgba(240,192,64,0.4);
+  -webkit-tap-highlight-color: transparent;
+}
+#play-btn:active { opacity: 0.85; transform: scale(0.97); }
+#tap-area {
+  position: absolute; inset: 0;
+  z-index: 1;
+}
+#tap-hint {
+  position: absolute; bottom: 16px; left: 0; right: 0;
+  text-align: center; color: rgba(255,255,255,0.3); font-size: 12px;
+  pointer-events: none; z-index: 2;
+}
+</style>
+</head>
+<body>
+<div id="gd-wrap">
+  <canvas id="canvas"></canvas>
+  <div id="ui">
+    <div>
+      <div id="score-display">0%</div>
+      <div id="percent-bar"><div id="percent-fill"></div></div>
+    </div>
+    <div id="attempts-display" style="color:rgba(255,255,255,0.45);font-size:12px;text-align:right;padding-top:2px;"></div>
+  </div>
+  <div id="tap-area"></div>
+  <div id="overlay">
+    <h1 id="ol-title">GEOMETRY DASH</h1>
+    <p id="ol-sub">Тапни по экрану для прыжка</p>
+    <button id="play-btn">ИГРАТЬ</button>
+    <div class="best" id="best-label"></div>
+    <div class="attempts-info" id="attempts-info"></div>
+  </div>
+  <div id="tap-hint">ТАП — прыжок</div>
+</div>
+
+<script>
+// --- Telegram WebApp init ---
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.disableVerticalSwipes && tg.disableVerticalSwipes();
+}
+
+function haptic(type) {
+  if (!tg || !tg.HapticFeedback) return;
+  if (type === 'jump') tg.HapticFeedback.impactOccurred('light');
+  if (type === 'death') tg.HapticFeedback.notificationOccurred('error');
+  if (type === 'win') tg.HapticFeedback.notificationOccurred('success');
+}
+
+// --- Canvas setup ---
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const W = () => canvas.width;
+const H = () => canvas.height;
+const GROUND = () => H() - Math.round(H() * 0.16);
+const TILE = () => Math.round(W() / 14);
+const CUBE_SIZE = () => Math.round(TILE() * 0.82);
+const SPEED = () => W() * 0.009;
+const JUMP_V = () => -H() * 0.032;
+const GRAVITY = () => H() * 0.0016;
+
+// --- State ---
+let state = 'menu';
+let player, cameraX, bgX, particles, level;
+let attempts = 0, bestPercent = 0;
+let tick = 0;
+
+const PALETTES = [
+  ['#6a11cb','#2575fc','#ff4dff'],
+  ['#f0c040','#ff6b35','#ff4dff'],
+  ['#00f2fe','#4facfe','#43e97b'],
+  ['#f093fb','#f5576c','#4facfe'],
+  ['#43e97b','#38f9d7','#f0c040'],
+];
+let palette = PALETTES[0];
+
+// --- Level generation ---
+function genLevel() {
+  const segments = [];
+  const T = TILE();
+  let x = W() + T * 4;
+  const totalLen = W() * 13;
+
+  while (x < totalLen - T * 6) {
+    const r = Math.random();
+    if (r < 0.15) {
+      const count = 1 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < count; i++) segments.push({ type: 'spike', x: x + i * T, y: GROUND() });
+      x += count * T + T * (1 + Math.floor(Math.random() * 2));
+    } else if (r < 0.30) {
+      const bx = x, by = GROUND() - T;
+      segments.push({ type: 'block', x: bx, y: by });
+      if (Math.random() < 0.5) segments.push({ type: 'spike', x: bx, y: by });
+      x += T * (2 + Math.floor(Math.random() * 3));
+    } else if (r < 0.44) {
+      const count = 1 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < count; i++) {
+        segments.push({ type: 'block', x: x + i * T, y: GROUND() - T });
+        if (i === count - 1 && Math.random() < 0.4)
+          segments.push({ type: 'spike', x: x + i * T, y: GROUND() - T });
+      }
+      x += (count + 1) * T + T * Math.floor(Math.random() * 2);
+    } else {
+      x += T * (1 + Math.floor(Math.random() * 3));
+    }
+  }
+  segments.push({ type: 'end', x: totalLen });
+  return { segments, totalLen };
+}
+
+// --- Player ---
+function resetPlayer() {
+  player = {
+    x: W() * 0.18,
+    y: GROUND() - CUBE_SIZE(),
+    vy: 0, onGround: false,
+    angle: 0, alive: true,
+    trail: []
+  };
+  cameraX = 0; bgX = 0; tick = 0; particles = [];
+  palette = PALETTES[Math.floor(Math.random() * PALETTES.length)];
+}
+
+function init() {
+  level = genLevel();
+  attempts++;
+  document.getElementById('attempts-display').textContent = `Попытки: ${attempts}`;
+  resetPlayer();
+  state = 'playing';
+}
+
+function jump() {
+  if (state === 'playing' && player.alive && player.onGround) {
+    player.vy = JUMP_V();
+    player.onGround = false;
+    haptic('jump');
+    spawnJumpParticles();
+  }
+}
+
+// --- Particles ---
+function spawnJumpParticles() {
+  for (let i = 0; i < 7; i++) {
+    particles.push({
+      x: player.x + CUBE_SIZE() / 2, y: player.y + CUBE_SIZE(),
+      vx: (Math.random() - 0.5) * TILE() * 0.08,
+      vy: -(Math.random() * TILE() * 0.06 + TILE() * 0.02),
+      life: 1, size: TILE() * 0.08 + Math.random() * TILE() * 0.08,
+      color: palette[Math.floor(Math.random() * palette.length)]
+    });
+  }
+}
+
+function spawnDeathParticles() {
+  for (let i = 0; i < 22; i++) {
+    const angle = (Math.PI * 2 * i) / 22 + Math.random() * 0.3;
+    const spd = TILE() * (0.05 + Math.random() * 0.1);
+    particles.push({
+      x: player.x + CUBE_SIZE() / 2, y: player.y + CUBE_SIZE() / 2,
+      vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd,
+      life: 1, size: TILE() * (0.08 + Math.random() * 0.12),
+      color: palette[Math.floor(Math.random() * palette.length)]
+    });
+  }
+}
+
+// --- Collision ---
+function checkCollision(obj) {
+  const pad = CUBE_SIZE() * 0.1;
+  const px = player.x + pad, py = player.y + pad;
+  const pw = CUBE_SIZE() - pad * 2, ph = CUBE_SIZE() - pad * 2;
+  const T = TILE();
+
+  if (obj.type === 'block') {
+    const bx = obj.x - cameraX, by = obj.y;
+    if (px < bx + T && px + pw > bx && py < by + T && py + ph > by) {
+      if (player.vy >= 0 && py + ph - player.vy <= by + 3) {
+        player.y = by - CUBE_SIZE(); player.vy = 0; player.onGround = true;
+        return false;
+      }
+      return true;
+    }
+  }
+  if (obj.type === 'spike') {
+    const sx = obj.x - cameraX;
+    const midX = sx + T / 2;
+    const tip = { x: midX, y: obj.y - T };
+    const bl = { x: sx, y: obj.y }, br = { x: sx + T, y: obj.y };
+    function tri(px, py) {
+      const d1 = (px - bl.x) * (tip.y - bl.y) - (tip.x - bl.x) * (py - bl.y);
+      const d2 = (px - tip.x) * (br.y - tip.y) - (br.x - tip.x) * (py - tip.y);
+      const d3 = (px - br.x) * (bl.y - br.y) - (bl.x - br.x) * (py - br.y);
+      return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+    }
+    const corners = [
+      [px + pad, py + pad], [px + pw - pad, py + pad],
+      [px + pad, py + ph - pad], [px + pw - pad, py + ph - pad]
+    ];
+    for (const [cx, cy] of corners) if (tri(cx, cy)) return true;
+  }
+  return false;
+}
+
+function getProgress() {
+  return Math.min(100, Math.round((cameraX / (level.totalLen - W())) * 100));
+}
+
+// --- Update ---
+function update() {
+  if (state !== 'playing' || !player.alive) return;
+  tick++;
+
+  const spd = SPEED();
+  cameraX += spd;
+  bgX -= spd * 0.3;
+
+  player.vy += GRAVITY();
+  player.y += player.vy;
+  player.angle += 5;
+
+  player.trail.push({ x: player.x, y: player.y, age: 0 });
+  if (player.trail.length > 10) player.trail.shift();
+  player.trail.forEach(t => t.age++);
+
+  player.onGround = false;
+  if (player.y >= GROUND() - CUBE_SIZE()) {
+    player.y = GROUND() - CUBE_SIZE();
+    player.vy = 0; player.onGround = true;
+  }
+
+  for (const obj of level.segments) {
+    const screenX = obj.x - cameraX;
+    if (screenX > W() + 100) break;
+    if (screenX < -TILE() * 2) continue;
+    if (obj.type === 'end') {
+      if (cameraX >= obj.x - W()) { state = 'win'; haptic('win'); showOverlay('win'); return; }
+      continue;
+    }
+    if (checkCollision(obj)) {
+      player.alive = false;
+      haptic('death');
+      spawnDeathParticles();
+      setTimeout(() => { state = 'dead'; showOverlay('dead'); }, 700);
+      return;
+    }
+  }
+
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += GRAVITY() * 0.5;
+    p.life -= 0.04; p.size *= 0.97;
+  });
+  particles = particles.filter(p => p.life > 0);
+
+  const pct = getProgress();
+  document.getElementById('score-display').textContent = pct + '%';
+  document.getElementById('percent-fill').style.width = pct + '%';
+  if (pct > bestPercent) bestPercent = pct;
+}
+
+// --- Draw ---
+function drawBg() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H());
+  grad.addColorStop(0, '#0d0025');
+  grad.addColorStop(0.6, '#1a0533');
+  grad.addColorStop(1, '#0a001f');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W(), H());
+
+  ctx.strokeStyle = 'rgba(120,60,200,0.1)';
+  ctx.lineWidth = 1;
+  const gs = Math.round(W() / 8);
+  const gridOff = bgX % gs;
+  for (let x = gridOff - gs; x < W() + gs; x += gs) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H()); ctx.stroke();
+  }
+  for (let y = 0; y < H(); y += gs) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W(), y); ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  for (let i = 0; i < 35; i++) {
+    const sx = ((i * 173 + Math.floor(bgX / 10) * 7) % W() + W()) % W();
+    const sy = (i * 97 + 40) % (H() * 0.65);
+    ctx.fillRect(sx, sy, 1.5, 1.5);
+  }
+}
+
+function drawGround() {
+  const T = TILE();
+  const G = GROUND();
+  const tileOff = -(cameraX % T);
+  for (let x = tileOff - T; x < W() + T; x += T) {
+    ctx.fillStyle = '#2a1060';
+    ctx.fillRect(x, G, T, H() - G);
+    ctx.strokeStyle = '#3d1a8a'; ctx.lineWidth = 1;
+    ctx.strokeRect(x, G, T, T);
+  }
+  ctx.fillStyle = palette[0];
+  ctx.fillRect(0, G, W(), 3);
+}
+
+function drawObjects() {
+  const T = TILE();
+  for (const obj of level.segments) {
+    const sx = obj.x - cameraX;
+    if (sx > W() + T) break;
+    if (sx < -T * 2) continue;
+
+    if (obj.type === 'block') {
+      const g = ctx.createLinearGradient(sx, obj.y, sx + T, obj.y + T);
+      g.addColorStop(0, palette[0]); g.addColorStop(1, palette[1]);
+      ctx.fillStyle = g;
+      ctx.fillRect(sx, obj.y, T, T);
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1;
+      ctx.strokeRect(sx, obj.y, T, T);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(sx + 3, obj.y + 3, T - 6, T * 0.12);
+    }
+    if (obj.type === 'spike') {
+      const midX = sx + T / 2;
+      ctx.beginPath();
+      ctx.moveTo(sx, obj.y); ctx.lineTo(midX, obj.y - T); ctx.lineTo(sx + T, obj.y);
+      ctx.closePath();
+      const sg = ctx.createLinearGradient(sx, obj.y - T, sx, obj.y);
+      sg.addColorStop(0, palette[2] || '#ff4dff');
+      sg.addColorStop(1, palette[1]);
+      ctx.fillStyle = sg; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 0.5; ctx.stroke();
+    }
+  }
+}
+
+function drawPlayer() {
+  const CS = CUBE_SIZE();
+  if (!player.alive) return;
+
+  player.trail.forEach(t => {
+    const alpha = (1 - t.age / 12) * 0.35;
+    const size = CS * (1 - t.age / 16);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = palette[0];
+    ctx.fillRect(t.x, t.y, size, size);
+    ctx.restore();
+  });
+
+  ctx.save();
+  ctx.translate(player.x + CS / 2, player.y + CS / 2);
+  ctx.rotate((player.angle * Math.PI) / 180);
+
+  const pg = ctx.createLinearGradient(-CS/2, -CS/2, CS/2, CS/2);
+  pg.addColorStop(0, palette[0]); pg.addColorStop(1, palette[1]);
+  ctx.fillStyle = pg;
+  ctx.beginPath();
+  ctx.roundRect(-CS/2, -CS/2, CS, CS, 4);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 2; ctx.stroke();
+
+  ctx.fillStyle = palette[2] || '#fff';
+  const inner = CS * 0.33;
+  ctx.beginPath();
+  ctx.moveTo(0, -inner);
+  ctx.lineTo(inner * 0.7, inner * 0.7);
+  ctx.lineTo(-inner * 0.7, inner * 0.7);
+  ctx.closePath(); ctx.fill();
+
+  ctx.restore();
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.roundRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size, 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W(), H());
+  drawBg(); drawGround(); drawObjects(); drawParticles(); drawPlayer();
+}
+
+// --- Overlay ---
+function showOverlay(type) {
+  const ol = document.getElementById('overlay');
+  const title = document.getElementById('ol-title');
+  const sub = document.getElementById('ol-sub');
+  const btn = document.getElementById('play-btn');
+  const best = document.getElementById('best-label');
+  const attInfo = document.getElementById('attempts-info');
+
+  ol.style.display = 'flex';
+
+  if (type === 'dead') {
+    title.textContent = 'ПОПЫТКА ПРОВАЛЕНА';
+    title.style.background = 'linear-gradient(135deg,#ff4444,#ff6b35,#ffaa00)';
+    title.style.webkitBackgroundClip = 'text';
+    title.style.webkitTextFillColor = 'transparent';
+    sub.textContent = `Ты добрался до ${getProgress()}%`;
+    btn.textContent = 'СНОВА';
+    best.textContent = bestPercent > 0 ? `Рекорд: ${bestPercent}%` : '';
+    attInfo.textContent = `Попытка #${attempts}`;
+  } else if (type === 'win') {
+    title.textContent = 'УРОВЕНЬ ПРОЙДЕН!';
+    title.style.background = 'linear-gradient(135deg,#43e97b,#f0c040,#ff6b35)';
+    title.style.webkitBackgroundClip = 'text';
+    title.style.webkitTextFillColor = 'transparent';
+    sub.textContent = '100% — Ты сделал это! 🎉';
+    btn.textContent = 'ЕЩЁ РАЗ';
+    best.textContent = ''; attInfo.textContent = '';
+    bestPercent = 100;
+  } else {
+    title.textContent = 'GEOMETRY DASH';
+    title.style.background = 'linear-gradient(135deg,#f0c040,#ff6b35,#ff4dff)';
+    title.style.webkitBackgroundClip = 'text';
+    title.style.webkitTextFillColor = 'transparent';
+    sub.textContent = 'Тапни по экрану для прыжка';
+    btn.textContent = 'ИГРАТЬ';
+    best.textContent = bestPercent > 0 ? `Рекорд: ${bestPercent}%` : '';
+    attInfo.textContent = attempts > 0 ? `Попытки: ${attempts}` : '';
+  }
+}
+
+// --- Game loop ---
+function gameLoop() {
+  update(); draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// --- Input ---
+document.getElementById('play-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('overlay').style.display = 'none';
+  init();
+});
+
+document.getElementById('tap-area').addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (state === 'playing') jump();
+}, { passive: false });
+
+document.getElementById('tap-area').addEventListener('click', () => {
+  if (state === 'playing') jump();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.key === ' ') {
+    e.preventDefault();
+    if (state === 'menu' || state === 'dead' || state === 'win') {
+      document.getElementById('overlay').style.display = 'none';
+      init();
+    } else jump();
+  }
+});
+
+// Prevent scroll/zoom
+document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+// --- Start ---
+showOverlay('menu');
+draw();
+gameLoop();
+</script>
+</body>
+</html>
