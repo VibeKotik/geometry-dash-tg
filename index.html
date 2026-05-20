@@ -6,57 +6,100 @@
 <title>Geometry Dash</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-html,body { width:100%;height:100%;overflow:hidden;background:#080018;touch-action:none;user-select:none;-webkit-user-select:none; }
-#canvas { display:block;position:absolute;top:0;left:0;pointer-events:none; }
-#ui {
-  position:absolute;top:0;left:0;right:0;
-  padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-start;
-  pointer-events:none;font-family:'Arial Black',Arial,sans-serif;z-index:5;
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#080018;user-select:none;-webkit-user-select:none;}
+#canvas{display:block;position:absolute;top:0;left:0;pointer-events:none;}
+
+/* UI игры */
+#ui{position:absolute;top:0;left:0;right:0;padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;font-family:'Arial Black',Arial,sans-serif;z-index:5;}
+#pct{color:#fff;font-size:18px;font-weight:900;text-shadow:2px 2px 0 #000,0 0 12px #f0c040;}
+#att{color:rgba(255,255,255,0.5);font-size:12px;padding-top:3px;text-align:right;}
+#mode-hint{position:absolute;bottom:16px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.35);font-size:12px;font-family:Arial,sans-serif;pointer-events:none;z-index:5;}
+
+/* ГЛАВНОЕ МЕНЮ */
+#overlay{position:absolute;inset:0;background:rgba(8,0,20,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Arial Black',Arial,sans-serif;z-index:100;}
+#ol-title{font-size:30px;font-weight:900;margin-bottom:8px;text-align:center;background:linear-gradient(135deg,#f0c040,#ff6b35,#ff4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#ol-sub{color:rgba(255,255,255,0.55);font-size:14px;margin-bottom:24px;text-align:center;padding:0 20px;font-family:Arial,sans-serif;font-weight:normal;}
+#ol-best{color:#f0c040;font-size:15px;margin-top:12px;font-weight:900;}
+#ol-att{color:rgba(255,255,255,0.35);font-size:12px;margin-top:6px;font-family:Arial,sans-serif;font-weight:normal;}
+.btn{border:none;border-radius:50px;cursor:pointer;font-family:'Arial Black',Arial,sans-serif;font-weight:900;letter-spacing:1px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+#play-btn{background:linear-gradient(135deg,#f0c040,#ff6b35);color:#1a0533;font-size:20px;padding:16px 56px;box-shadow:0 0 30px rgba(240,192,64,0.5);}
+#levels-btn{background:transparent;border:2px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);font-size:15px;padding:11px 36px;margin-top:12px;}
+#editor-btn{background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:15px;padding:11px 36px;margin-top:10px;box-shadow:0 0 20px rgba(124,58,237,0.4);}
+
+/* ВЫБОР УРОВНЯ */
+#level-screen{position:absolute;inset:0;background:rgba(8,0,20,0.97);display:none;flex-direction:column;align-items:center;justify-content:center;font-family:'Arial Black',Arial,sans-serif;z-index:100;}
+#level-screen h2{font-size:24px;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,#f0c040,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#level-screen p{color:rgba(255,255,255,0.4);font-size:13px;font-family:Arial,sans-serif;font-weight:normal;margin-bottom:24px;}
+.level-cards{display:flex;flex-direction:column;gap:12px;width:80%;max-width:320px;}
+.level-card{border-radius:16px;padding:14px 18px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:space-between;border:2px solid transparent;}
+.level-card:active{transform:scale(0.97);}
+.level-card.easy{background:linear-gradient(135deg,#064e3b,#065f46);border-color:#10b981;}
+.level-card.medium{background:linear-gradient(135deg,#1e3a5f,#1e40af);border-color:#3b82f6;}
+.level-card.hard{background:linear-gradient(135deg,#3b0764,#4c1d95);border-color:#a855f7;}
+.level-card.custom{background:linear-gradient(135deg,#4a1030,#7c1060);border-color:#ec4899;}
+.linfo{display:flex;flex-direction:column;}
+.lname{color:#fff;font-size:17px;font-weight:900;}
+.ldesc{color:rgba(255,255,255,0.55);font-size:12px;font-family:Arial,sans-serif;font-weight:normal;margin-top:2px;}
+.lbest{font-size:11px;margin-top:3px;font-family:Arial,sans-serif;font-weight:normal;}
+.easy .lbest{color:#6ee7b7;}.medium .lbest{color:#93c5fd;}.hard .lbest{color:#d8b4fe;}.custom .lbest{color:#f9a8d4;}
+.lbadge{font-size:26px;opacity:0.9;}
+#back-btn{margin-top:18px;background:transparent;border:2px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);font-size:14px;padding:10px 30px;}
+
+/* ===== РЕДАКТОР ===== */
+#editor{position:absolute;inset:0;background:#080018;display:none;flex-direction:column;z-index:200;touch-action:none;}
+
+/* Тулбар инструментов */
+#ed-toolbar{
+  background:rgba(15,0,40,0.98);
+  border-bottom:1px solid rgba(255,255,255,0.1);
+  padding:8px 10px;
+  display:flex;align-items:center;gap:6px;
+  overflow-x:auto;flex-shrink:0;
+  -webkit-overflow-scrolling:touch;
 }
-#pct { color:#fff;font-size:18px;font-weight:900;text-shadow:2px 2px 0 #000,0 0 12px #f0c040; }
-#att { color:rgba(255,255,255,0.5);font-size:12px;padding-top:3px;text-align:right; }
-#mode-hint {
-  position:absolute;bottom:16px;left:0;right:0;text-align:center;
-  color:rgba(255,255,255,0.35);font-size:12px;font-family:Arial,sans-serif;
-  pointer-events:none;z-index:5;
-}
-#overlay {
-  position:absolute;inset:0;background:rgba(8,0,20,0.95);
+#ed-toolbar::-webkit-scrollbar{display:none;}
+.tool-btn{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  font-family:'Arial Black',Arial,sans-serif;z-index:100;
+  border:2px solid rgba(255,255,255,0.15);border-radius:10px;
+  background:rgba(255,255,255,0.05);
+  color:rgba(255,255,255,0.7);font-size:9px;
+  padding:6px 8px;min-width:44px;cursor:pointer;
+  font-family:Arial,sans-serif;flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  transition:background 0.15s,border-color 0.15s;
 }
-#ol-title {
-  font-size:30px;font-weight:900;margin-bottom:8px;text-align:center;
-  background:linear-gradient(135deg,#f0c040,#ff6b35,#ff4dff);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+.tool-btn .ti{font-size:18px;margin-bottom:2px;}
+.tool-btn.active{border-color:#f0c040;background:rgba(240,192,64,0.18);color:#f0c040;}
+.tool-btn:active{opacity:0.75;}
+
+#ed-sep{width:1px;height:40px;background:rgba(255,255,255,0.12);flex-shrink:0;margin:0 2px;}
+
+/* Канвас редактора */
+#ed-canvas-wrap{flex:1;position:relative;overflow:hidden;}
+#ed-canvas{display:block;touch-action:none;}
+
+/* Нижняя панель редактора */
+#ed-bottom{
+  background:rgba(15,0,40,0.98);
+  border-top:1px solid rgba(255,255,255,0.1);
+  padding:8px 12px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0;gap:8px;
 }
-#ol-sub { color:rgba(255,255,255,0.55);font-size:14px;margin-bottom:28px;text-align:center;padding:0 20px;font-family:Arial,sans-serif;font-weight:normal; }
-#ol-best { color:#f0c040;font-size:15px;margin-top:12px;font-weight:900; }
-#ol-att  { color:rgba(255,255,255,0.35);font-size:12px;margin-top:6px;font-family:Arial,sans-serif;font-weight:normal; }
-.btn { border:none;border-radius:50px;cursor:pointer;font-family:'Arial Black',Arial,sans-serif;font-weight:900;letter-spacing:1px;-webkit-tap-highlight-color:transparent;touch-action:manipulation; }
-#play-btn { background:linear-gradient(135deg,#f0c040,#ff6b35);color:#1a0533;font-size:20px;padding:16px 56px;box-shadow:0 0 30px rgba(240,192,64,0.5); }
-#levels-btn { background:transparent;border:2px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);font-size:15px;padding:11px 36px;margin-top:12px; }
-#level-screen {
-  position:absolute;inset:0;background:rgba(8,0,20,0.97);
-  display:none;flex-direction:column;align-items:center;justify-content:center;
-  font-family:'Arial Black',Arial,sans-serif;z-index:100;
+.ed-btn{border:none;border-radius:20px;cursor:pointer;font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:13px;padding:9px 18px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+#ed-play-btn{background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;}
+#ed-clear-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);font-size:12px;}
+#ed-back-btn{background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);font-size:12px;}
+#ed-info{color:rgba(255,255,255,0.35);font-size:11px;font-family:Arial,sans-serif;text-align:center;flex:1;}
+
+/* Всплывашка телепорта */
+#tp-popup{
+  position:absolute;bottom:70px;left:50%;transform:translateX(-50%);
+  background:rgba(20,0,50,0.97);border:1px solid #a855f7;border-radius:12px;
+  padding:12px 16px;color:#fff;font-family:Arial,sans-serif;font-size:13px;
+  display:none;z-index:300;text-align:center;min-width:220px;
 }
-#level-screen h2 { font-size:24px;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,#f0c040,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
-#level-screen p { color:rgba(255,255,255,0.4);font-size:13px;font-family:Arial,sans-serif;font-weight:normal;margin-bottom:28px; }
-.level-cards { display:flex;flex-direction:column;gap:14px;width:80%;max-width:320px; }
-.level-card { border-radius:16px;padding:16px 20px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:space-between;border:2px solid transparent; }
-.level-card:active { transform:scale(0.97); }
-.level-card.easy   { background:linear-gradient(135deg,#064e3b,#065f46);border-color:#10b981; }
-.level-card.medium { background:linear-gradient(135deg,#1e3a5f,#1e40af);border-color:#3b82f6; }
-.level-card.hard   { background:linear-gradient(135deg,#3b0764,#4c1d95);border-color:#a855f7; }
-.linfo { display:flex;flex-direction:column; }
-.lname { color:#fff;font-size:18px;font-weight:900; }
-.ldesc { color:rgba(255,255,255,0.55);font-size:12px;font-family:Arial,sans-serif;font-weight:normal;margin-top:2px; }
-.lbest { font-size:11px;margin-top:4px;font-family:Arial,sans-serif;font-weight:normal; }
-.easy .lbest{color:#6ee7b7;} .medium .lbest{color:#93c5fd;} .hard .lbest{color:#d8b4fe;}
-.lbadge { font-size:28px;opacity:0.9; }
-#back-btn { margin-top:22px;background:transparent;border:2px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);font-size:14px;padding:10px 30px; }
+#tp-popup b{color:#c084fc;}
 </style>
 </head>
 <body>
@@ -67,313 +110,265 @@ html,body { width:100%;height:100%;overflow:hidden;background:#080018;touch-acti
 </div>
 <div id="mode-hint"></div>
 
+<!-- ГЛАВНОЕ МЕНЮ -->
 <div id="overlay">
   <div id="ol-title">GEOMETRY DASH</div>
   <div id="ol-sub">Тапни по экрану для прыжка</div>
   <button class="btn" id="play-btn">ИГРАТЬ</button>
   <button class="btn" id="levels-btn">ВЫБРАТЬ УРОВЕНЬ</button>
+  <button class="btn" id="editor-btn">🛠 РЕДАКТОР</button>
   <div id="ol-best"></div>
   <div id="ol-att"></div>
 </div>
 
+<!-- ВЫБОР УРОВНЯ -->
 <div id="level-screen">
   <h2>ВЫБОР УРОВНЯ</h2>
   <p>Выбери сложность</p>
   <div class="level-cards">
     <div class="level-card easy" data-level="1">
-      <div class="linfo">
-        <div class="lname">Уровень 1</div>
-        <div class="ldesc">🟢 Лёгкий · Только куб</div>
-        <div class="lbest" id="best1">Рекорд: —</div>
-      </div>
+      <div class="linfo"><div class="lname">Уровень 1</div><div class="ldesc">🟢 Лёгкий · Только куб</div><div class="lbest" id="best1">Рекорд: —</div></div>
       <div class="lbadge">⬛</div>
     </div>
     <div class="level-card medium" data-level="2">
-      <div class="linfo">
-        <div class="lname">Уровень 2</div>
-        <div class="ldesc">🔵 Средний · Больше шипов</div>
-        <div class="lbest" id="best2">Рекорд: —</div>
-      </div>
+      <div class="linfo"><div class="lname">Уровень 2</div><div class="ldesc">🔵 Средний · Больше шипов</div><div class="lbest" id="best2">Рекорд: —</div></div>
       <div class="lbadge">⬛</div>
     </div>
     <div class="level-card hard" data-level="3">
-      <div class="linfo">
-        <div class="lname">Уровень 3</div>
-        <div class="ldesc">🚀 Сложный · Куб + Корабль</div>
-        <div class="lbest" id="best3">Рекорд: —</div>
-      </div>
+      <div class="linfo"><div class="lname">Уровень 3</div><div class="ldesc">🚀 Сложный · Куб + Корабль</div><div class="lbest" id="best3">Рекорд: —</div></div>
       <div class="lbadge">🚀</div>
+    </div>
+    <div class="level-card custom" data-level="custom" id="custom-card">
+      <div class="linfo"><div class="lname">Мой уровень</div><div class="ldesc">✏️ Созданный в редакторе</div><div class="lbest" id="best-custom">Рекорд: —</div></div>
+      <div class="lbadge">✏️</div>
     </div>
   </div>
   <button class="btn" id="back-btn">← НАЗАД</button>
 </div>
 
+<!-- РЕДАКТОР -->
+<div id="editor">
+  <div id="ed-toolbar">
+    <button class="tool-btn active" data-tool="spike"><span class="ti">▲</span>Шип</button>
+    <button class="tool-btn" data-tool="block"><span class="ti">⬛</span>Блок</button>
+    <button class="tool-btn" data-tool="tunnel_top"><span class="ti">🔝</span>Туннель↑</button>
+    <button class="tool-btn" data-tool="tunnel_bot"><span class="ti">🔛</span>Туннель↓</button>
+    <button class="tool-btn" data-tool="portal_ship"><span class="ti">🚀</span>Корабль</button>
+    <button class="tool-btn" data-tool="portal_cube"><span class="ti">⬜</span>Куб</button>
+    <button class="tool-btn" data-tool="teleport_a"><span class="ti">🟣</span>Телепорт A</button>
+    <button class="tool-btn" data-tool="teleport_b"><span class="ti">🟡</span>Телепорт B</button>
+    <div id="ed-sep"></div>
+    <button class="tool-btn" data-tool="erase"><span class="ti">🗑</span>Ластик</button>
+  </div>
+  <div id="ed-canvas-wrap">
+    <canvas id="ed-canvas"></canvas>
+    <div id="tp-popup">Поставь <b>Телепорт B</b> — точку выхода.<br>Игрок перенесётся из A в B.</div>
+  </div>
+  <div id="ed-bottom">
+    <button class="ed-btn" id="ed-back-btn">← Назад</button>
+    <div id="ed-info">Тап — поставить · Зажми — тянуть</div>
+    <button class="ed-btn" id="ed-clear-btn">🗑 Очистить</button>
+    <button class="ed-btn" id="ed-play-btn">▶ Играть</button>
+  </div>
+</div>
+
 <script>
+// ===== TELEGRAM =====
 const tg = window.Telegram && window.Telegram.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
-function haptic(t) {
-  if (!tg||!tg.HapticFeedback) return;
-  if (t==='jump') tg.HapticFeedback.impactOccurred('light');
-  if (t==='die')  tg.HapticFeedback.notificationOccurred('error');
-  if (t==='win')  tg.HapticFeedback.notificationOccurred('success');
+if(tg){tg.ready();tg.expand();}
+function haptic(t){
+  if(!tg||!tg.HapticFeedback)return;
+  if(t==='jump') tg.HapticFeedback.impactOccurred('light');
+  if(t==='die')  tg.HapticFeedback.notificationOccurred('error');
+  if(t==='win')  tg.HapticFeedback.notificationOccurred('success');
+  if(t==='tap')  tg.HapticFeedback.impactOccurred('rigid');
 }
 
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let W = window.innerWidth, H = window.innerHeight;
-canvas.width=W; canvas.height=H;
-window.addEventListener('resize',()=>{ W=window.innerWidth;H=window.innerHeight;canvas.width=W;canvas.height=H; });
+// ===== GAME CANVAS =====
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let W=window.innerWidth,H=window.innerHeight;
+canvas.width=W;canvas.height=H;
+window.addEventListener('resize',()=>{W=window.innerWidth;H=window.innerHeight;canvas.width=W;canvas.height=H;});
 
-function T()  { return Math.round(W/18); }
-function CS() { return Math.round(T()*0.8); }
-function GY() { return Math.round(H*0.78); }
-function GRV(){ return H*0.0017; }
-function JMP(){ return -H*0.033; }
+function T(){return Math.round(W/18);}
+function CS(){return Math.round(T()*0.8);}
+function GY(){return Math.round(H*0.78);}
+function GRV(){return H*0.0017;}
+function JMP(){return -H*0.033;}
 function SPD(){
-  if (currentLevel===1) return W*0.004;
-  if (currentLevel===2) return W*0.0055;
-  return W*0.006;
+  if(currentLevel===1)return W*0.0072;
+  if(currentLevel===2)return W*0.0099;
+  if(currentLevel===3)return W*0.0108;
+  return W*0.008; // custom
 }
+const SHIP_GRV=()=>H*0.0012;
+const SHIP_LIFT=()=>-H*0.0025;
+const SHIP_MAX=()=>H*0.012;
 
-// Режим корабля
-const SHIP_GRV  = () => H * 0.0012;  // гравитация корабля (вниз)
-const SHIP_LIFT = () => -H * 0.0025; // тяга вверх при зажатии
-const SHIP_MAX  = () => H * 0.012;   // макс скорость
+let state='menu';
+let camX,bgX,tick,player,parts,level;
+let currentLevel=1;
+let attempts=0;
+let bests={1:0,2:0,3:0,custom:0};
+let pressing=false;
+const LEVEL_PALS={1:['#10b981','#06b6d4','#a3e635'],2:['#3b82f6','#8b5cf6','#ec4899'],3:['#a855f7','#ec4899','#f97316'],custom:['#ec4899','#f97316','#facc15']};
+let pal=LEVEL_PALS[1];
 
-let state = 'menu';
-let camX, bgX, tick, player, parts, level;
-let currentLevel = 1;
-let attempts = 0;
-let bests = {1:0,2:0,3:0};
-let pressing = false; // зажата ли кнопка (для корабля)
-
-const LEVEL_PALS = {
-  1: ['#10b981','#06b6d4','#a3e635'],
-  2: ['#3b82f6','#8b5cf6','#ec4899'],
-  3: ['#a855f7','#ec4899','#f97316'],
-};
-let pal = LEVEL_PALS[1];
-
-// Режимы сегментов уровня
-// mode: 'cube' | 'ship'
-// Уровень 3 чередует секции куба и корабля
-
-function makeLevel(lvl) {
-  const segs = [];
-  let x = W + T()*5;
-  const len = W * 14;
-
-  // Для уровня 3 — чередуем секции куб/корабль
-  // Секция корабля помечена { t:'ship_start', x } и { t:'ship_end', x }
-  // В секции корабля препятствия — верхние и нижние трубы
-
-  if (lvl === 3) {
-    // Сначала секция куба (~30% пути)
-    const shipStart = len * 0.35;
-    const shipEnd   = len * 0.70;
-
-    // Препятствия куба до секции корабля
-    while (x < shipStart - T()*8) {
-      const r = Math.random();
-      if (r < 0.20) {
-        const n = 1+Math.floor(Math.random()*3);
-        for (let i=0;i<n;i++) segs.push({t:'spike',x:x+i*T(),y:GY()});
-        x += n*T()+T()*(1+Math.floor(Math.random()*2));
-      } else if (r < 0.38) {
-        const by=GY()-T(); segs.push({t:'block',x,y:by});
-        if (Math.random()<0.6) segs.push({t:'spike',x,y:by});
-        x += T()*(2+Math.floor(Math.random()*3));
-      } else {
-        x += T()*(1+Math.floor(Math.random()*3));
-      }
+// ===== ГЕНЕРАЦИЯ УРОВНЕЙ =====
+function makeAutoLevel(lvl){
+  const segs=[];let x=W+T()*5;const len=W*14;
+  if(lvl===3){
+    const ss=len*0.35,se=len*0.70;
+    while(x<ss-T()*8){
+      const r=Math.random();
+      if(r<0.20){const n=1+Math.floor(Math.random()*3);for(let i=0;i<n;i++)segs.push({t:'spike',x:x+i*T(),y:GY()});x+=n*T()+T()*(1+Math.floor(Math.random()*2));}
+      else if(r<0.38){const by=GY()-T();segs.push({t:'block',x,y:by});if(Math.random()<0.6)segs.push({t:'spike',x,y:by});x+=T()*(2+Math.floor(Math.random()*3));}
+      else x+=T()*(1+Math.floor(Math.random()*3));
     }
-
-    // Переход в корабль
-    segs.push({t:'ship_start', x: shipStart});
-    x = shipStart + T()*4;
-
-    // Препятствия корабля — трубы (верх+низ с зазором)
-    const GAP = () => H * 0.30; // размер зазора
-    const PIPE_W = T() * 2;
-    while (x < shipEnd - PIPE_W*3) {
-      const centerY = H*0.25 + Math.random()*(H*0.45);
-      segs.push({
-        t:'pipe',
-        x, pw: PIPE_W,
-        topH:  centerY - GAP()/2,       // высота верхней трубы (от 0)
-        botY:  centerY + GAP()/2,        // нижняя труба начинается тут
-        botH:  H - (centerY + GAP()/2),
-      });
-      x += PIPE_W + T()*(3+Math.floor(Math.random()*4));
+    segs.push({t:'ship_start',x:ss});x=ss+T()*4;
+    const GAP=H*0.30,PW=T()*2;
+    while(x<se-PW*3){
+      const cy=H*0.25+Math.random()*(H*0.45);
+      segs.push({t:'pipe',x,pw:PW,topH:cy-GAP/2,botY:cy+GAP/2,botH:H-(cy+GAP/2)});
+      x+=PW+T()*(3+Math.floor(Math.random()*4));
     }
-
-    // Конец секции корабля
-    segs.push({t:'ship_end', x: shipEnd});
-    x = shipEnd + T()*3;
-
-    // Снова куб — финальная секция
-    while (x < len - T()*8) {
-      const r = Math.random();
-      if (r < 0.22) {
-        const n = 1+Math.floor(Math.random()*4);
-        for (let i=0;i<n;i++) segs.push({t:'spike',x:x+i*T(),y:GY()});
-        x += n*T()+T()*(1+Math.floor(Math.random()*2));
-      } else if (r < 0.40) {
-        const by=GY()-T(); segs.push({t:'block',x,y:by});
-        segs.push({t:'spike',x,y:by});
-        x += T()*(2+Math.floor(Math.random()*2));
-      } else if (r < 0.54) {
-        const n=2+Math.floor(Math.random()*3);
-        for(let i=0;i<n;i++){
-          segs.push({t:'block',x:x+i*T(),y:GY()-T()});
-          if(Math.random()<0.5) segs.push({t:'spike',x:x+i*T(),y:GY()-T()});
-        }
-        x+=(n+1)*T();
-      } else {
-        x += T()*(1+Math.floor(Math.random()*2));
-      }
+    segs.push({t:'ship_end',x:se});x=se+T()*3;
+    while(x<len-T()*8){
+      const r=Math.random();
+      if(r<0.22){const n=1+Math.floor(Math.random()*4);for(let i=0;i<n;i++)segs.push({t:'spike',x:x+i*T(),y:GY()});x+=n*T()+T()*(1+Math.floor(Math.random()*2));}
+      else if(r<0.40){const by=GY()-T();segs.push({t:'block',x,y:by});segs.push({t:'spike',x,y:by});x+=T()*(2+Math.floor(Math.random()*2));}
+      else if(r<0.54){const n=2+Math.floor(Math.random()*3);for(let i=0;i<n;i++){segs.push({t:'block',x:x+i*T(),y:GY()-T()});if(Math.random()<0.5)segs.push({t:'spike',x:x+i*T(),y:GY()-T()});}x+=(n+1)*T();}
+      else x+=T()*(1+Math.floor(Math.random()*2));
     }
-
-  } else if (lvl === 1) {
-    while (x < len - T()*8) {
-      const r = Math.random();
-      if (r < 0.12) {
-        segs.push({t:'spike',x,y:GY()});
-        x += T()*(4+Math.floor(Math.random()*5));
-      } else if (r < 0.20) {
-        segs.push({t:'block',x,y:GY()-T()});
-        x += T()*(3+Math.floor(Math.random()*4));
-      } else {
-        x += T()*(2+Math.floor(Math.random()*4));
-      }
+  } else if(lvl===1){
+    while(x<len-T()*8){
+      const r=Math.random();
+      if(r<0.12){segs.push({t:'spike',x,y:GY()});x+=T()*(4+Math.floor(Math.random()*5));}
+      else if(r<0.20){segs.push({t:'block',x,y:GY()-T()});x+=T()*(3+Math.floor(Math.random()*4));}
+      else x+=T()*(2+Math.floor(Math.random()*4));
     }
   } else {
-    while (x < len - T()*8) {
-      const r = Math.random();
-      if (r < 0.15) {
-        const n=1+Math.floor(Math.random()*2);
-        for(let i=0;i<n;i++) segs.push({t:'spike',x:x+i*T(),y:GY()});
-        x+=n*T()+T()*(2+Math.floor(Math.random()*3));
-      } else if (r < 0.30) {
-        const by=GY()-T(); segs.push({t:'block',x,y:by});
-        if(Math.random()<0.6) segs.push({t:'spike',x,y:by});
-        x+=T()*(2+Math.floor(Math.random()*3));
-      } else if (r < 0.44) {
-        const n=1+Math.floor(Math.random()*2);
-        for(let i=0;i<n;i++){
-          segs.push({t:'block',x:x+i*T(),y:GY()-T()});
-          if(i===n-1&&Math.random()<0.5) segs.push({t:'spike',x:x+i*T(),y:GY()-T()});
-        }
-        x+=(n+1)*T()+T()*Math.floor(Math.random()*2);
-      } else {
-        x+=T()*(1+Math.floor(Math.random()*3));
-      }
+    while(x<len-T()*8){
+      const r=Math.random();
+      if(r<0.15){const n=1+Math.floor(Math.random()*2);for(let i=0;i<n;i++)segs.push({t:'spike',x:x+i*T(),y:GY()});x+=n*T()+T()*(2+Math.floor(Math.random()*3));}
+      else if(r<0.30){const by=GY()-T();segs.push({t:'block',x,y:by});if(Math.random()<0.6)segs.push({t:'spike',x,y:by});x+=T()*(2+Math.floor(Math.random()*3));}
+      else if(r<0.44){const n=1+Math.floor(Math.random()*2);for(let i=0;i<n;i++){segs.push({t:'block',x:x+i*T(),y:GY()-T()});if(i===n-1&&Math.random()<0.5)segs.push({t:'spike',x:x+i*T(),y:GY()-T()});}x+=(n+1)*T()+T()*Math.floor(Math.random()*2);}
+      else x+=T()*(1+Math.floor(Math.random()*3));
+    }
+  }
+  segs.push({t:'end',x:len});
+  segs.sort((a,b)=>a.x-b.x);
+  return{segs,len};
+}
+
+// ===== КАСТОМНЫЙ УРОВЕНЬ из редактора =====
+// customLevelData хранит массив ячеек {col, row, type}
+let customLevelData=[];
+
+function buildCustomLevel(){
+  if(customLevelData.length===0) return makeAutoLevel(1);
+  const segs=[];
+  const COLS=edCols;
+  // Находим максимальный col
+  const maxCol=customLevelData.reduce((m,c)=>Math.max(m,c.col),0);
+  const len=Math.max(W*6, (maxCol+10)*T()+W);
+
+  // Телепорт A→B
+  let tpA=null,tpB=null;
+
+  for(const cell of customLevelData){
+    const worldX=W+T()*2+cell.col*T();
+    const worldY=cell.row*T();
+
+    if(cell.type==='spike'){
+      segs.push({t:'spike',x:worldX,y:worldY});
+    } else if(cell.type==='block'){
+      segs.push({t:'block',x:worldX,y:worldY});
+    } else if(cell.type==='tunnel_top'){
+      // Туннельный блок сверху (потолок)
+      segs.push({t:'block',x:worldX,y:worldY});
+    } else if(cell.type==='tunnel_bot'){
+      // Туннельный блок снизу
+      segs.push({t:'block',x:worldX,y:worldY});
+    } else if(cell.type==='portal_ship'){
+      segs.push({t:'ship_start',x:worldX});
+    } else if(cell.type==='portal_cube'){
+      segs.push({t:'ship_end',x:worldX});
+    } else if(cell.type==='teleport_a'){
+      tpA={x:worldX,y:worldY};
+      segs.push({t:'teleport_a',x:worldX,y:worldY});
+    } else if(cell.type==='teleport_b'){
+      tpB={x:worldX,y:worldY};
+      segs.push({t:'teleport_b',x:worldX,y:worldY});
     }
   }
 
   segs.push({t:'end',x:len});
-  // Сортируем по x чтобы break работал правильно
   segs.sort((a,b)=>a.x-b.x);
-  return {segs,len};
+  return{segs,len,tpA,tpB};
 }
 
-function startGame(lvl) {
-  currentLevel = lvl||currentLevel;
-  pal = LEVEL_PALS[currentLevel];
-  level = makeLevel(currentLevel);
-  attempts++;
-  camX=0; bgX=0; tick=0; parts=[];
-  pressing = false;
-  player = {
-    x: W*0.15, y: GY()-CS(),
-    vy:0, onGround:false, alive:true,
-    angle:0, trail:[], canDouble:false,
-    mode:'cube' // 'cube' | 'ship'
-  };
+// ===== ИГРОК =====
+function startGame(lvl){
+  currentLevel=lvl||currentLevel;
+  pal=LEVEL_PALS[currentLevel]||LEVEL_PALS.custom;
+  if(currentLevel==='custom') level=buildCustomLevel();
+  else level=makeAutoLevel(currentLevel);
+  attempts++;camX=0;bgX=0;tick=0;parts=[];pressing=false;
+  player={x:W*0.15,y:GY()-CS(),vy:0,onGround:false,alive:true,angle:0,trail:[],canDouble:false,mode:'cube'};
   state='playing';
-  document.getElementById('att').textContent='Ур.'+currentLevel+' · Попытка '+attempts;
+  document.getElementById('att').textContent='Ур.'+(currentLevel==='custom'?'✏️':currentLevel)+' · Попытка '+attempts;
   document.getElementById('pct').textContent='0%';
   updateModeHint();
 }
 
-function updateModeHint() {
-  const hint = document.getElementById('mode-hint');
-  if (!player) { hint.textContent=''; return; }
-  if (player.mode==='ship') hint.textContent='🚀 Зажми экран чтобы лететь вверх';
-  else hint.textContent='';
+function updateModeHint(){
+  const h=document.getElementById('mode-hint');
+  if(!player){h.textContent='';return;}
+  h.textContent=player.mode==='ship'?'🚀 Зажми — лети вверх':'';
 }
 
-// Прыжок/управление
-function pressStart() {
-  if (state!=='playing'||!player||!player.alive) return;
-  pressing = true;
-  if (player.mode==='cube') {
-    if (player.onGround) {
-      player.vy=JMP(); player.onGround=false; player.canDouble=true;
-      haptic('jump'); spawnJumpParts(false);
-    } else if (player.canDouble) {
-      player.vy=JMP()*0.9; player.canDouble=false;
-      haptic('jump'); spawnJumpParts(false);
-    }
+function pressStart(){
+  if(state!=='playing'||!player||!player.alive)return;
+  pressing=true;
+  if(player.mode==='cube'){
+    if(player.onGround){player.vy=JMP();player.onGround=false;player.canDouble=true;haptic('jump');spawnJumpParts();}
+    else if(player.canDouble){player.vy=JMP()*0.9;player.canDouble=false;haptic('jump');spawnJumpParts();}
   }
 }
-function pressEnd() { pressing=false; }
+function pressEnd(){pressing=false;}
 
-function spawnJumpParts(isShip) {
-  const cx = player.x+CS()/2, cy = isShip ? player.y+CS()/2 : player.y+CS();
-  for(let i=0;i<6;i++) parts.push({
-    x:cx, y:cy,
-    vx:(Math.random()-0.5)*4, vy:-(1+Math.random()*3),
-    life:1, r:3+Math.random()*5, c:pal[Math.floor(Math.random()*pal.length)]
-  });
-}
-
-// Тяга корабля — частицы сзади
-function spawnShipTrail() {
-  if (tick%2!==0) return;
-  parts.push({
-    x: player.x, y: player.y+CS()*0.5,
-    vx: -(2+Math.random()*3), vy: (Math.random()-0.5)*2,
-    life:0.7, r:3+Math.random()*5,
-    c: pal[Math.floor(Math.random()*pal.length)]
-  });
+function spawnJumpParts(){
+  for(let i=0;i<6;i++) parts.push({x:player.x+CS()/2,y:player.y+CS(),vx:(Math.random()-0.5)*4,vy:-(1+Math.random()*3),life:1,r:3+Math.random()*5,c:pal[Math.floor(Math.random()*pal.length)]});
 }
 
 // Коллизии
-function ptInTri(px,py,ax,ay,bx,by,cx,cy) {
+function ptInTri(px,py,ax,ay,bx,by,cx,cy){
   const d1=(px-bx)*(ay-by)-(ax-bx)*(py-by);
   const d2=(px-cx)*(by-cy)-(bx-cx)*(py-cy);
   const d3=(px-ax)*(cy-ay)-(cx-ax)*(py-ay);
-  return !((d1<0||d2<0||d3<0)&&(d1>0||d2>0||d3>0));
+  return!((d1<0||d2<0||d3<0)&&(d1>0||d2>0||d3>0));
 }
-function checkSpike(obj) {
-  const sx=obj.x-camX, pad=CS()*0.15;
+function checkSpike(obj){
+  const sx=obj.x-camX,pad=CS()*0.15;
   const px=player.x+pad,py=player.y+pad,pw=CS()-pad*2,ph=CS()-pad*2;
   const tip=[sx+T()/2,obj.y-T()],bl=[sx,obj.y],br=[sx+T(),obj.y];
   const corners=[[px,py],[px+pw,py],[px,py+ph],[px+pw,py+ph],[px+pw/2,py]];
-  for(const [cx,cy] of corners) if(ptInTri(cx,cy,tip[0],tip[1],bl[0],bl[1],br[0],br[1])) return true;
+  for(const[cx,cy]of corners)if(ptInTri(cx,cy,tip[0],tip[1],bl[0],bl[1],br[0],br[1]))return true;
   return false;
 }
-function checkPipe(obj) {
-  const sx=obj.x-camX;
-  const pad=CS()*0.12;
+function checkPipe(obj){
+  const sx=obj.x-camX,pad=CS()*0.12;
   const px=player.x+pad,py=player.y+pad,pw=CS()-pad*2,ph=CS()-pad*2;
-  if(px<sx+obj.pw&&px+pw>sx) {
-    // Верхняя труба
-    if(py<obj.topH) return true;
-    // Нижняя труба
-    if(py+ph>obj.botY) return true;
-  }
+  if(px<sx+obj.pw&&px+pw>sx){if(py<obj.topH)return true;if(py+ph>obj.botY)return true;}
   return false;
 }
 
-function die() {
-  player.alive=false; haptic('die');
+function die(){
+  player.alive=false;haptic('die');
   const cx=player.x+CS()/2,cy=player.y+CS()/2;
-  for(let i=0;i<28;i++){
-    const a=(Math.PI*2/28)*i+Math.random()*0.2,spd=3+Math.random()*6;
-    parts.push({x:cx,y:cy,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:1,r:4+Math.random()*8,c:pal[Math.floor(Math.random()*pal.length)]});
-  }
+  for(let i=0;i<28;i++){const a=(Math.PI*2/28)*i+Math.random()*0.2,spd=3+Math.random()*6;parts.push({x:cx,y:cy,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:1,r:4+Math.random()*8,c:pal[Math.floor(Math.random()*pal.length)]});}
   const pct=getPercent();
   if(pct>bests[currentLevel]){bests[currentLevel]=pct;updateBestLabels();}
   setTimeout(()=>showOverlay('die'),800);
@@ -381,52 +376,48 @@ function die() {
 
 function getPercent(){return Math.min(100,Math.round(camX/(level.len-W)*100));}
 
-// Обновление
-function update() {
-  if(!level||!player||state!=='playing'||!player.alive) return;
+// ===== UPDATE =====
+function update(){
+  if(!level||!player||state!=='playing'||!player.alive)return;
   tick++;
-  camX+=SPD(); bgX-=SPD()*0.25;
+  camX+=SPD();bgX-=SPD()*0.25;
 
-  // Проверяем переключение режима
+  // Смена режима + телепорт
   for(const obj of level.segs){
-    if(obj.x-camX>W) break;
+    const sx=obj.x-camX;
+    if(sx>W)break;
     if(obj.t==='ship_start'&&camX>=obj.x&&player.mode==='cube'){
-      player.mode='ship'; player.vy=0;
-      updateModeHint();
-      // Вспышка
-      for(let i=0;i<12;i++) parts.push({
-        x:player.x+CS()/2,y:player.y+CS()/2,
-        vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,
-        life:1,r:5+Math.random()*8,c:pal[1]
-      });
+      player.mode='ship';player.vy=0;updateModeHint();
+      for(let i=0;i<12;i++)parts.push({x:player.x+CS()/2,y:player.y+CS()/2,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:1,r:5+Math.random()*8,c:pal[1]});
     }
     if(obj.t==='ship_end'&&camX>=obj.x&&player.mode==='ship'){
-      player.mode='cube'; player.vy=0;
-      player.y=GY()-CS();
-      player.onGround=true; player.canDouble=false;
-      updateModeHint();
-      for(let i=0;i<12;i++) parts.push({
-        x:player.x+CS()/2,y:player.y+CS()/2,
-        vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,
-        life:1,r:5+Math.random()*8,c:pal[0]
-      });
+      player.mode='cube';player.vy=0;player.y=GY()-CS();player.onGround=true;player.canDouble=false;updateModeHint();
+      for(let i=0;i<12;i++)parts.push({x:player.x+CS()/2,y:player.y+CS()/2,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:1,r:5+Math.random()*8,c:pal[0]});
+    }
+    // Телепорт
+    if(obj.t==='teleport_a'&&level.tpB){
+      const sx2=obj.x-camX;
+      if(player.x+CS()>sx2&&player.x<sx2+T()){
+        // Телепортируем камеру так чтобы выйти у tpB
+        const dx=level.tpB.x-obj.x;
+        camX+=dx;
+        player.vy=0;
+        for(let i=0;i<16;i++)parts.push({x:player.x+CS()/2,y:player.y+CS()/2,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8,life:1,r:4+Math.random()*8,c:'#a855f7'});
+        haptic('jump');
+      }
     }
   }
 
   if(player.mode==='cube'){
-    // Физика куба
-    player.vy+=GRV(); player.y+=player.vy; player.angle+=4.5;
-    player.trail.push({x:player.x,y:player.y,a:0,mode:'cube'});
-    if(player.trail.length>9) player.trail.shift();
+    player.vy+=GRV();player.y+=player.vy;player.angle+=4.5;
+    player.trail.push({x:player.x,y:player.y,a:0});
+    if(player.trail.length>9)player.trail.shift();
     player.trail.forEach(t=>t.a++);
     player.onGround=false;
     if(player.y>=GY()-CS()){player.y=GY()-CS();player.vy=0;player.onGround=true;player.canDouble=false;}
-
-    // Коллизии куба
     for(const obj of level.segs){
       const sx=obj.x-camX;
-      if(sx>W+T()*2) break;
-      if(sx<-T()*3) continue;
+      if(sx>W+T()*2)break;if(sx<-T()*3)continue;
       if(obj.t==='end'){if(camX>=obj.x-W){state='win';bests[currentLevel]=100;haptic('win');updateBestLabels();showOverlay('win');return;}continue;}
       if(obj.t==='block'){
         const bx=sx,by=obj.y,pad=2;
@@ -438,321 +429,376 @@ function update() {
       }
       if(obj.t==='spike'){if(checkSpike(obj)){die();return;}}
     }
-
   } else {
-    // Физика корабля
-    if(pressing){
-      player.vy+=SHIP_LIFT();
-    } else {
-      player.vy+=SHIP_GRV();
-    }
-    // Ограничение скорости
-    const maxV=SHIP_MAX();
-    if(player.vy>maxV) player.vy=maxV;
-    if(player.vy<-maxV) player.vy=-maxV;
-
-    player.y+=player.vy;
-    player.angle = player.vy*2; // наклон по скорости
-
-    player.trail.push({x:player.x,y:player.y,a:0,mode:'ship'});
-    if(player.trail.length>12) player.trail.shift();
+    if(pressing)player.vy+=SHIP_LIFT();else player.vy+=SHIP_GRV();
+    const mx=SHIP_MAX();if(player.vy>mx)player.vy=mx;if(player.vy<-mx)player.vy=-mx;
+    player.y+=player.vy;player.angle=player.vy*2;
+    player.trail.push({x:player.x,y:player.y,a:0});
+    if(player.trail.length>12)player.trail.shift();
     player.trail.forEach(t=>t.a++);
-
-    // Границы экрана
     if(player.y<0){player.y=0;player.vy=0;}
     if(player.y>H-CS()){player.y=H-CS();player.vy=0;}
-
-    spawnShipTrail();
-
-    // Коллизии корабля
+    if(tick%2===0)parts.push({x:player.x,y:player.y+CS()*0.5,vx:-(2+Math.random()*3),vy:(Math.random()-0.5)*2,life:0.7,r:3+Math.random()*5,c:pal[Math.floor(Math.random()*pal.length)]});
     for(const obj of level.segs){
       const sx=obj.x-camX;
-      if(sx>W+T()*2) break;
-      if(sx<-T()*4) continue;
+      if(sx>W+T()*2)break;if(sx<-T()*4)continue;
       if(obj.t==='end'){if(camX>=obj.x-W){state='win';bests[currentLevel]=100;haptic('win');updateBestLabels();showOverlay('win');return;}continue;}
       if(obj.t==='pipe'){if(checkPipe(obj)){die();return;}}
     }
   }
-
   parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life-=0.035;p.r*=0.97;});
   parts=parts.filter(p=>p.life>0);
   document.getElementById('pct').textContent=getPercent()+'%';
 }
 
-// === РИСОВАНИЕ ===
-function drawBg() {
+// ===== DRAW =====
+function drawBg(){
   const g=ctx.createLinearGradient(0,0,0,H);
-  if(player&&player.mode==='ship'){
-    // Космический фон для режима корабля
-    g.addColorStop(0,'#000010');g.addColorStop(1,'#0a001a');
-  } else {
-    g.addColorStop(0,'#080018');g.addColorStop(1,'#1a0035');
-  }
+  g.addColorStop(0,'#080018');g.addColorStop(1,'#1a0035');
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
   const off=((bgX%(T()*2))+T()*2)%(T()*2);
   ctx.strokeStyle='rgba(100,40,180,0.13)';ctx.lineWidth=1;
   for(let x=off-T()*2;x<W+T()*2;x+=T()*2){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=0;y<H;y+=T()*2){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-  // Звёзды
   ctx.fillStyle='rgba(255,255,255,0.8)';
-  for(let i=0;i<50;i++){
-    const sx=((i*179+Math.floor(-bgX*0.1)*13)%W+W)%W;
-    const sy=(i*83+20)%(H*0.85);
-    ctx.fillRect(sx,sy,0.5+(i%3)*0.5,0.5+(i%3)*0.5);
-  }
+  for(let i=0;i<50;i++){const sx=((i*179+Math.floor(-bgX*0.1)*13)%W+W)%W,sy=(i*83+20)%(H*0.85);ctx.fillRect(sx,sy,0.5+(i%3)*0.5,0.5+(i%3)*0.5);}
 }
-
-function drawGround() {
-  if(player&&player.mode==='ship') return; // В режиме корабля пол не рисуем
+function drawGround(){
+  if(player&&player.mode==='ship')return;
   const gy=GY(),off=-(camX%T());
-  for(let x=off-T();x<W+T();x+=T()){
-    ctx.fillStyle='#1e0b4a';ctx.fillRect(x,gy,T(),H-gy);
-    ctx.strokeStyle='#2d1570';ctx.lineWidth=1;ctx.strokeRect(x,gy,T(),T());
-    ctx.fillStyle='rgba(120,60,220,0.15)';ctx.fillRect(x+2,gy+2,T()-4,4);
-  }
+  for(let x=off-T();x<W+T();x+=T()){ctx.fillStyle='#1e0b4a';ctx.fillRect(x,gy,T(),H-gy);ctx.strokeStyle='#2d1570';ctx.lineWidth=1;ctx.strokeRect(x,gy,T(),T());ctx.fillStyle='rgba(120,60,220,0.15)';ctx.fillRect(x+2,gy+2,T()-4,4);}
   ctx.fillStyle=pal[0];ctx.fillRect(0,gy,W,2);
 }
-
-function drawObjects() {
-  if(!level) return;
+function drawObjects(){
+  if(!level)return;
   for(const obj of level.segs){
     const sx=obj.x-camX;
-    if(sx>W+T()*3) break;
-    if(sx<-T()*3) continue;
-
+    if(sx>W+T()*3)break;if(sx<-T()*3)continue;
     if(obj.t==='block'){
-      const bg=ctx.createLinearGradient(sx,obj.y,sx+T(),obj.y+T());
-      bg.addColorStop(0,pal[0]);bg.addColorStop(1,pal[1]);
-      ctx.fillStyle=bg;ctx.fillRect(sx,obj.y,T(),T());
-      ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1.5;ctx.strokeRect(sx,obj.y,T(),T());
-      ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fillRect(sx+3,obj.y+3,T()-6,6);
+      const bg=ctx.createLinearGradient(sx,obj.y,sx+T(),obj.y+T());bg.addColorStop(0,pal[0]);bg.addColorStop(1,pal[1]);
+      ctx.fillStyle=bg;ctx.fillRect(sx,obj.y,T(),T());ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1.5;ctx.strokeRect(sx,obj.y,T(),T());ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fillRect(sx+3,obj.y+3,T()-6,6);
     }
-
     if(obj.t==='spike'){
-      const mid=sx+T()/2;
-      ctx.beginPath();ctx.moveTo(sx,obj.y);ctx.lineTo(mid,obj.y-T());ctx.lineTo(sx+T(),obj.y);ctx.closePath();
-      const sg=ctx.createLinearGradient(sx,obj.y-T(),sx,obj.y);
-      sg.addColorStop(0,pal[2]);sg.addColorStop(1,pal[1]);
-      ctx.fillStyle=sg;ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;ctx.stroke();
+      const mid=sx+T()/2;ctx.beginPath();ctx.moveTo(sx,obj.y);ctx.lineTo(mid,obj.y-T());ctx.lineTo(sx+T(),obj.y);ctx.closePath();
+      const sg=ctx.createLinearGradient(sx,obj.y-T(),sx,obj.y);sg.addColorStop(0,pal[2]);sg.addColorStop(1,pal[1]);ctx.fillStyle=sg;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;ctx.stroke();
     }
-
     if(obj.t==='pipe'){
       const pw=obj.pw;
-      // Верхняя труба
-      const tg=ctx.createLinearGradient(sx,0,sx+pw,0);
-      tg.addColorStop(0,pal[0]);tg.addColorStop(1,pal[1]);
-      ctx.fillStyle=tg;
-      ctx.fillRect(sx,0,pw,obj.topH);
-      ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
-      ctx.strokeRect(sx,0,pw,obj.topH);
-      // Шапка верхней трубы
-      ctx.fillStyle=pal[1];ctx.fillRect(sx-4,obj.topH-10,pw+8,10);
-      ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.strokeRect(sx-4,obj.topH-10,pw+8,10);
-
-      // Нижняя труба
-      const bg2=ctx.createLinearGradient(sx,obj.botY,sx+pw,obj.botY);
-      bg2.addColorStop(0,pal[0]);bg2.addColorStop(1,pal[1]);
-      ctx.fillStyle=bg2;
-      ctx.fillRect(sx,obj.botY,pw,obj.botH);
-      ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
-      ctx.strokeRect(sx,obj.botY,pw,obj.botH);
-      // Шапка нижней трубы
-      ctx.fillStyle=pal[1];ctx.fillRect(sx-4,obj.botY,pw+8,10);
-      ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.strokeRect(sx-4,obj.botY,pw+8,10);
-
-      // Блики на трубах
-      ctx.fillStyle='rgba(255,255,255,0.1)';
-      ctx.fillRect(sx+3,0,4,obj.topH);
-      ctx.fillRect(sx+3,obj.botY,4,obj.botH);
+      const tg2=ctx.createLinearGradient(sx,0,sx+pw,0);tg2.addColorStop(0,pal[0]);tg2.addColorStop(1,pal[1]);
+      ctx.fillStyle=tg2;ctx.fillRect(sx,0,pw,obj.topH);ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;ctx.strokeRect(sx,0,pw,obj.topH);
+      ctx.fillStyle=pal[1];ctx.fillRect(sx-4,obj.topH-10,pw+8,10);ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.strokeRect(sx-4,obj.topH-10,pw+8,10);
+      ctx.fillStyle=tg2;ctx.fillRect(sx,obj.botY,pw,obj.botH);ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.strokeRect(sx,obj.botY,pw,obj.botH);
+      ctx.fillStyle=pal[1];ctx.fillRect(sx-4,obj.botY,pw+8,10);ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.strokeRect(sx-4,obj.botY,pw+8,10);
     }
-
-    // Линия перехода режимов
     if(obj.t==='ship_start'||obj.t==='ship_end'){
-      const color = obj.t==='ship_start'?'rgba(168,85,247,0.6)':'rgba(16,185,129,0.6)';
-      ctx.strokeStyle=color;ctx.lineWidth=3;ctx.setLineDash([8,6]);
-      ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke();
-      ctx.setLineDash([]);
-      // Иконка
-      ctx.fillStyle=color;ctx.font='bold 14px Arial';ctx.textAlign='center';
-      ctx.fillText(obj.t==='ship_start'?'🚀 КОРАБЛЬ':'⬛ КУБ', sx, 30);
+      const color=obj.t==='ship_start'?'rgba(168,85,247,0.6)':'rgba(16,185,129,0.6)';
+      ctx.strokeStyle=color;ctx.lineWidth=3;ctx.setLineDash([8,6]);ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=color;ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.fillText(obj.t==='ship_start'?'🚀':'⬛',sx,24);
+    }
+    if(obj.t==='teleport_a'||obj.t==='teleport_b'){
+      const color=obj.t==='teleport_a'?'#a855f7':'#facc15';
+      ctx.strokeStyle=color;ctx.lineWidth=3;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=color;ctx.font='bold 20px Arial';ctx.textAlign='center';ctx.fillText(obj.t==='teleport_a'?'🟣':'🟡',sx,obj.y-T());
     }
   }
 }
-
-function drawPlayer() {
-  if(!player||!player.alive) return;
+function drawPlayer(){
+  if(!player||!player.alive)return;
   const cs=CS();
-
-  // Трейл
-  player.trail.forEach(t=>{
-    const a=(1-t.a/12)*0.3,s=cs*(1-t.a/16);if(s<=0)return;
-    ctx.save();ctx.globalAlpha=a;ctx.fillStyle=pal[0];
-    ctx.fillRect(t.x+(cs-s)/2,t.y+(cs-s)/2,s,s);ctx.restore();
-  });
-
-  ctx.save();
-  ctx.translate(player.x+cs/2,player.y+cs/2);
-  ctx.rotate(player.angle*Math.PI/180);
-
+  player.trail.forEach(t=>{const a=(1-t.a/12)*0.3,s=cs*(1-t.a/16);if(s<=0)return;ctx.save();ctx.globalAlpha=a;ctx.fillStyle=pal[0];ctx.fillRect(t.x+(cs-s)/2,t.y+(cs-s)/2,s,s);ctx.restore();});
+  ctx.save();ctx.translate(player.x+cs/2,player.y+cs/2);ctx.rotate(player.angle*Math.PI/180);
   if(player.mode==='cube'){
-    // Куб
-    const cg=ctx.createLinearGradient(-cs/2,-cs/2,cs/2,cs/2);
-    cg.addColorStop(0,pal[0]);cg.addColorStop(1,pal[1]);
-    ctx.fillStyle=cg;
-    ctx.beginPath();ctx.roundRect(-cs/2,-cs/2,cs,cs,5);ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=2;ctx.stroke();
-    const r=cs*0.28;ctx.fillStyle=pal[2];
-    ctx.beginPath();ctx.moveTo(0,-r);ctx.lineTo(r*0.85,r*0.7);ctx.lineTo(-r*0.85,r*0.7);ctx.closePath();ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(-cs/2+4,-cs/2+4,cs-8,6);
-
+    const cg=ctx.createLinearGradient(-cs/2,-cs/2,cs/2,cs/2);cg.addColorStop(0,pal[0]);cg.addColorStop(1,pal[1]);ctx.fillStyle=cg;ctx.beginPath();ctx.roundRect(-cs/2,-cs/2,cs,cs,5);ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=2;ctx.stroke();
+    const r=cs*0.28;ctx.fillStyle=pal[2];ctx.beginPath();ctx.moveTo(0,-r);ctx.lineTo(r*0.85,r*0.7);ctx.lineTo(-r*0.85,r*0.7);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(-cs/2+4,-cs/2+4,cs-8,6);
   } else {
-    // Корабль — треугольник с деталями
-    const w=cs*1.3, h=cs*0.7;
-    // Тело корабля
-    const sg=ctx.createLinearGradient(-w/2,0,w/2,0);
-    sg.addColorStop(0,pal[1]);sg.addColorStop(1,pal[0]);
-    ctx.fillStyle=sg;
-    ctx.beginPath();
-    ctx.moveTo(w/2,0);           // нос
-    ctx.lineTo(-w/2,-h/2);       // верх хвоста
-    ctx.lineTo(-w/3,0);          // центр хвоста
-    ctx.lineTo(-w/2,h/2);        // низ хвоста
-    ctx.closePath();ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1.5;ctx.stroke();
-    // Кабина
-    ctx.fillStyle=pal[2];
-    ctx.beginPath();ctx.arc(w*0.05,0,h*0.28,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;ctx.stroke();
-    // Двигатель (огонь) - только при нажатии
-    if(pressing){
-      const fg=ctx.createRadialGradient(-w/2,0,0,-w/2,0,h*0.5);
-      fg.addColorStop(0,'rgba(255,200,50,0.9)');
-      fg.addColorStop(0.5,'rgba(255,100,20,0.6)');
-      fg.addColorStop(1,'rgba(255,50,0,0)');
-      ctx.fillStyle=fg;
-      ctx.beginPath();ctx.arc(-w/2,0,h*(0.3+Math.random()*0.25),0,Math.PI*2);ctx.fill();
-    }
+    const w=cs*1.3,h=cs*0.7;const sg=ctx.createLinearGradient(-w/2,0,w/2,0);sg.addColorStop(0,pal[1]);sg.addColorStop(1,pal[0]);ctx.fillStyle=sg;
+    ctx.beginPath();ctx.moveTo(w/2,0);ctx.lineTo(-w/2,-h/2);ctx.lineTo(-w/3,0);ctx.lineTo(-w/2,h/2);ctx.closePath();ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle=pal[2];ctx.beginPath();ctx.arc(w*0.05,0,h*0.28,0,Math.PI*2);ctx.fill();
+    if(pressing){const fg=ctx.createRadialGradient(-w/2,0,0,-w/2,0,h*0.5);fg.addColorStop(0,'rgba(255,200,50,0.9)');fg.addColorStop(0.5,'rgba(255,100,20,0.6)');fg.addColorStop(1,'rgba(255,50,0,0)');ctx.fillStyle=fg;ctx.beginPath();ctx.arc(-w/2,0,h*(0.3+Math.random()*0.25),0,Math.PI*2);ctx.fill();}
   }
   ctx.restore();
-
-  // Свечение
-  if(player.mode==='ship'){
-    ctx.save();ctx.globalAlpha=0.15;
-    ctx.fillStyle=pal[0];
-    ctx.beginPath();ctx.arc(player.x+cs/2,player.y+cs/2,cs*1.2,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-  }
+}
+function drawParticles(){
+  if(!parts)return;
+  parts.forEach(p=>{ctx.save();ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.c;ctx.beginPath();ctx.roundRect(p.x-p.r/2,p.y-p.r/2,p.r,p.r,2);ctx.fill();ctx.restore();});
 }
 
-function drawParticles() {
-  if(!parts) return;
-  parts.forEach(p=>{
-    ctx.save();ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.c;
-    ctx.beginPath();ctx.roundRect(p.x-p.r/2,p.y-p.r/2,p.r,p.r,2);ctx.fill();ctx.restore();
-  });
-}
-
-// === ОВЕРЛЕЙ ===
+// ===== ОВЕРЛЕЙ =====
 function updateBestLabels(){
-  for(let i=1;i<=3;i++){
-    document.getElementById('best'+i).textContent=bests[i]>0?'Рекорд: '+bests[i]+'%':'Рекорд: —';
-  }
+  for(let i=1;i<=3;i++)document.getElementById('best'+i).textContent=bests[i]>0?'Рекорд: '+bests[i]+'%':'Рекорд: —';
+  document.getElementById('best-custom').textContent=bests.custom>0?'Рекорд: '+bests.custom+'%':'Рекорд: —';
 }
-
-function setCanvasInput(active){
-  canvas.style.pointerEvents = active ? 'auto' : 'none';
-}
-
+function setCanvasInput(a){canvas.style.pointerEvents=a?'auto':'none';}
 function showOverlay(type){
-  setCanvasInput(false);
   document.getElementById('level-screen').style.display='none';
   document.getElementById('mode-hint').textContent='';
-  const ol=document.getElementById('overlay');
-  const title=document.getElementById('ol-title');
-  const sub=document.getElementById('ol-sub');
-  const olB=document.getElementById('ol-best');
-  const olA=document.getElementById('ol-att');
-  const playBtn=document.getElementById('play-btn');
+  setCanvasInput(false);
+  const ol=document.getElementById('overlay'),title=document.getElementById('ol-title'),sub=document.getElementById('ol-sub'),olB=document.getElementById('ol-best'),olA=document.getElementById('ol-att'),pb=document.getElementById('play-btn');
   if(type==='die'){
-    title.textContent='ПОПЫТКА ПРОВАЛЕНА';
-    title.style.background='linear-gradient(135deg,#ef4444,#f97316,#facc15)';
-    title.style.webkitBackgroundClip='text';title.style.webkitTextFillColor='transparent';
-    sub.textContent='Ты добрался до '+getPercent()+'%  ·  Уровень '+currentLevel;
-    playBtn.textContent='СНОВА';
-    olB.textContent=bests[currentLevel]>0?'Рекорд: '+bests[currentLevel]+'%':'';
-    olA.textContent='Попытка #'+attempts;
+    title.textContent='ПОПЫТКА ПРОВАЛЕНА';title.style.background='linear-gradient(135deg,#ef4444,#f97316,#facc15)';title.style.webkitBackgroundClip='text';title.style.webkitTextFillColor='transparent';
+    sub.textContent='Ты добрался до '+getPercent()+'%';pb.textContent='СНОВА';olB.textContent=bests[currentLevel]>0?'Рекорд: '+bests[currentLevel]+'%':'';olA.textContent='Попытка #'+attempts;
   } else if(type==='win'){
-    title.textContent='ПОБЕДА! 🎉';
-    title.style.background='linear-gradient(135deg,#4ade80,#facc15,#ff6b35)';
-    title.style.webkitBackgroundClip='text';title.style.webkitTextFillColor='transparent';
-    sub.textContent='Уровень '+currentLevel+' пройден на 100%!';
-    playBtn.textContent='ЕЩЁ РАЗ';olB.textContent='';olA.textContent='';
+    title.textContent='ПОБЕДА! 🎉';title.style.background='linear-gradient(135deg,#4ade80,#facc15,#ff6b35)';title.style.webkitBackgroundClip='text';title.style.webkitTextFillColor='transparent';
+    sub.textContent='Уровень пройден на 100%!';pb.textContent='ЕЩЁ РАЗ';olB.textContent='';olA.textContent='';
   } else {
-    title.textContent='GEOMETRY DASH';
-    title.style.background='linear-gradient(135deg,#f0c040,#ff6b35,#ff4dff)';
-    title.style.webkitBackgroundClip='text';title.style.webkitTextFillColor='transparent';
-    sub.textContent='Тапни по экрану для прыжка';
-    playBtn.textContent='ИГРАТЬ';olB.textContent='';olA.textContent='';
+    title.textContent='GEOMETRY DASH';title.style.background='linear-gradient(135deg,#f0c040,#ff6b35,#ff4dff)';title.style.webkitBackgroundClip='text';title.style.webkitTextFillColor='transparent';
+    sub.textContent='Тапни по экрану для прыжка';pb.textContent='ИГРАТЬ';olB.textContent='';olA.textContent='';
   }
   ol.style.display='flex';
 }
+function showLevelScreen(){updateBestLabels();setCanvasInput(false);document.getElementById('overlay').style.display='none';document.getElementById('level-screen').style.display='flex';}
 
-function showLevelScreen(){
-  setCanvasInput(false);
-  updateBestLabels();
-  document.getElementById('overlay').style.display='none';
-  document.getElementById('level-screen').style.display='flex';
-}
+// ===== GAME LOOP =====
+function loop(){update();drawBg();drawGround();drawObjects();drawParticles();drawPlayer();requestAnimationFrame(loop);}
 
-// === GAME LOOP ===
-function loop(){
-  update();
-  drawBg();drawGround();drawObjects();drawParticles();drawPlayer();
-  requestAnimationFrame(loop);
-}
-
-// === СОБЫТИЯ ===
-document.getElementById('play-btn').addEventListener('click',e=>{
-  e.stopPropagation();
-  document.getElementById('overlay').style.display='none';
-  setCanvasInput(true);
-  startGame();
-});
+// ===== СОБЫТИЯ ИГРЫ =====
+document.getElementById('play-btn').addEventListener('click',e=>{e.stopPropagation();document.getElementById('overlay').style.display='none';setCanvasInput(true);startGame();});
 document.getElementById('levels-btn').addEventListener('click',e=>{e.stopPropagation();showLevelScreen();});
+document.getElementById('editor-btn').addEventListener('click',e=>{e.stopPropagation();document.getElementById('overlay').style.display='none';openEditor();});
 document.getElementById('back-btn').addEventListener('click',e=>{e.stopPropagation();document.getElementById('level-screen').style.display='none';showOverlay('menu');});
 document.querySelectorAll('.level-card').forEach(card=>{
   card.addEventListener('click',e=>{
     e.stopPropagation();
     document.getElementById('level-screen').style.display='none';
     setCanvasInput(true);
-    startGame(parseInt(card.dataset.level));
+    startGame(card.dataset.level==='custom'?'custom':parseInt(card.dataset.level));
+  });
+});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();pressStart();},{passive:false});
+canvas.addEventListener('touchend',e=>{e.preventDefault();pressEnd();},{passive:false});
+canvas.addEventListener('mousedown',()=>pressStart());
+canvas.addEventListener('mouseup',()=>pressEnd());
+canvas.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Space')return;e.preventDefault();
+  if(document.getElementById('overlay').style.display!=='none'){document.getElementById('overlay').style.display='none';setCanvasInput(true);startGame();return;}
+  pressStart();
+});
+document.addEventListener('keyup',e=>{if(e.code==='Space')pressEnd();});
+
+// ============================================================
+// ==================== РЕДАКТОР УРОВНЕЙ ======================
+// ============================================================
+const edCanvas=document.getElementById('ed-canvas');
+const edCtx=edCanvas.getContext('2d');
+let edW,edH;
+let edTool='spike';
+let edScrollX=0; // горизонтальный скролл (в клетках)
+let edDragging=false;
+let edLastX=0;
+let edPainting=false;
+let edPaintTool='';
+const edRows=12; // строк по высоте
+let edCols=60;   // всего колонок (ширина уровня)
+let edCellW,edCellH;
+
+// Цвета инструментов
+const TOOL_COLORS={
+  spike:    '#ec4899',
+  block:    '#3b82f6',
+  tunnel_top:'#0ea5e9',
+  tunnel_bot:'#0ea5e9',
+  portal_ship:'#a855f7',
+  portal_cube:'#10b981',
+  teleport_a:'#a855f7',
+  teleport_b:'#facc15',
+};
+const TOOL_ICONS={
+  spike:'▲',block:'■',tunnel_top:'▬',tunnel_bot:'▬',portal_ship:'🚀',portal_cube:'⬜',teleport_a:'🟣',teleport_b:'🟡',
+};
+
+function initEdCanvas(){
+  edW=window.innerWidth;
+  edH=document.getElementById('ed-canvas-wrap').clientHeight||window.innerHeight-100;
+  edCanvas.width=edW;edCanvas.height=edH;
+  edCellW=Math.round(edW/10); // 10 клеток видно
+  edCellH=Math.round(edH/edRows);
+}
+
+function openEditor(){
+  document.getElementById('editor').style.display='flex';
+  initEdCanvas();
+  renderEditor();
+}
+function closeEditor(){
+  document.getElementById('editor').style.display='none';
+  showOverlay('menu');
+}
+
+// Перевод экранных координат в клетку
+function screenToCell(x,y){
+  const col=Math.floor(x/edCellW)+edScrollX;
+  const row=Math.floor(y/edCellH);
+  return{col,row};
+}
+
+// Получить ячейку
+function getCell(col,row){return customLevelData.find(c=>c.col===col&&c.row===row);}
+function removeCell(col,row){customLevelData=customLevelData.filter(c=>!(c.col===col&&c.row===row));}
+function placeCell(col,row){
+  if(col<0||row<0||row>=edRows)return;
+  removeCell(col,row);
+  // Порталы и телепорты — только 1 экземпляр
+  if(edTool==='portal_ship'||edTool==='portal_cube')customLevelData=customLevelData.filter(c=>c.type!==edTool);
+  if(edTool==='teleport_a')customLevelData=customLevelData.filter(c=>c.type!=='teleport_a');
+  if(edTool==='teleport_b')customLevelData=customLevelData.filter(c=>c.type!=='teleport_b');
+  customLevelData.push({col,row,type:edTool});
+  // Подсказка телепорта
+  if(edTool==='teleport_a'){document.getElementById('tp-popup').style.display='block';setTimeout(()=>document.getElementById('tp-popup').style.display='none',3000);}
+}
+function eraseCell(col,row){removeCell(col,row);}
+
+// Рендер редактора
+function renderEditor(){
+  edCtx.clearRect(0,0,edW,edH);
+  // Фон
+  edCtx.fillStyle='#0d0025';edCtx.fillRect(0,0,edW,edH);
+
+  // Сетка
+  const visColStart=edScrollX;
+  const visColEnd=edScrollX+Math.ceil(edW/edCellW)+1;
+
+  // Земля (последние 2 ряда — зарезервированы визуально)
+  const groundRow=edRows-2;
+  edCtx.fillStyle='rgba(30,11,74,0.6)';
+  edCtx.fillRect(0,groundRow*edCellH,edW,edH-groundRow*edCellH);
+
+  // Линии сетки
+  edCtx.strokeStyle='rgba(255,255,255,0.07)';edCtx.lineWidth=1;
+  for(let c=visColStart;c<=visColEnd;c++){
+    const sx=(c-edScrollX)*edCellW;
+    edCtx.beginPath();edCtx.moveTo(sx,0);edCtx.lineTo(sx,edH);edCtx.stroke();
+  }
+  for(let r=0;r<=edRows;r++){
+    const sy=r*edCellH;edCtx.beginPath();edCtx.moveTo(0,sy);edCtx.lineTo(edW,sy);edCtx.stroke();
+  }
+
+  // Линия пола
+  edCtx.fillStyle='#7c3aed';edCtx.fillRect(0,groundRow*edCellH,edW,2);
+
+  // Объекты
+  for(const cell of customLevelData){
+    if(cell.col<visColStart-1||cell.col>visColEnd)continue;
+    const sx=(cell.col-edScrollX)*edCellW;
+    const sy=cell.row*edCellH;
+    drawEdCell(sx,sy,cell.type);
+  }
+
+  // Номера колонок
+  edCtx.fillStyle='rgba(255,255,255,0.2)';edCtx.font='9px Arial';edCtx.textAlign='center';
+  for(let c=visColStart;c<=visColEnd;c+=5){
+    const sx=(c-edScrollX)*edCellW+edCellW/2;
+    edCtx.fillText(c,sx,10);
+  }
+
+  // Скролл-индикатор
+  const totalW=edCols*edCellW;
+  const barW=edW*(edW/totalW);
+  const barX=(edScrollX/edCols)*edW;
+  edCtx.fillStyle='rgba(255,255,255,0.15)';edCtx.fillRect(0,edH-3,edW,3);
+  edCtx.fillStyle='rgba(255,255,255,0.5)';edCtx.fillRect(barX,edH-3,barW,3);
+}
+
+function drawEdCell(sx,sy,type){
+  const cw=edCellW,ch=edCellH;
+  const color=TOOL_COLORS[type]||'#888';
+  if(type==='spike'){
+    edCtx.beginPath();edCtx.moveTo(sx,sy+ch);edCtx.lineTo(sx+cw/2,sy+2);edCtx.lineTo(sx+cw,sy+ch);edCtx.closePath();
+    edCtx.fillStyle=color+'cc';edCtx.fill();edCtx.strokeStyle=color;edCtx.lineWidth=1;edCtx.stroke();
+  } else if(type==='block'){
+    edCtx.fillStyle=color+'aa';edCtx.fillRect(sx+1,sy+1,cw-2,ch-2);
+    edCtx.strokeStyle=color;edCtx.lineWidth=1.5;edCtx.strokeRect(sx+1,sy+1,cw-2,ch-2);
+    edCtx.fillStyle='rgba(255,255,255,0.2)';edCtx.fillRect(sx+3,sy+3,cw-6,4);
+  } else if(type==='tunnel_top'||type==='tunnel_bot'){
+    edCtx.fillStyle=color+'99';edCtx.fillRect(sx+1,sy+1,cw-2,ch-2);
+    edCtx.strokeStyle=color;edCtx.lineWidth=2;edCtx.strokeRect(sx+1,sy+1,cw-2,ch-2);
+    // Диагональная штриховка
+    edCtx.strokeStyle=color+'66';edCtx.lineWidth=1;
+    for(let i=0;i<cw;i+=6){edCtx.beginPath();edCtx.moveTo(sx+i,sy);edCtx.lineTo(sx,sy+i);edCtx.stroke();}
+  } else if(type==='portal_ship'||type==='portal_cube'){
+    edCtx.strokeStyle=color;edCtx.lineWidth=2;edCtx.setLineDash([4,3]);
+    edCtx.beginPath();edCtx.moveTo(sx+cw/2,sy);edCtx.lineTo(sx+cw/2,sy+ch);edCtx.stroke();edCtx.setLineDash([]);
+    edCtx.fillStyle=color;edCtx.font=`${Math.round(ch*0.6)}px Arial`;edCtx.textAlign='center';
+    edCtx.fillText(type==='portal_ship'?'🚀':'⬜',sx+cw/2,sy+ch*0.75);
+  } else if(type==='teleport_a'||type==='teleport_b'){
+    edCtx.strokeStyle=color;edCtx.lineWidth=2;edCtx.setLineDash([3,3]);
+    edCtx.beginPath();edCtx.moveTo(sx+cw/2,sy);edCtx.lineTo(sx+cw/2,sy+ch);edCtx.stroke();edCtx.setLineDash([]);
+    edCtx.fillStyle=color;edCtx.font=`${Math.round(ch*0.55)}px Arial`;edCtx.textAlign='center';
+    edCtx.fillText(type==='teleport_a'?'🟣':'🟡',sx+cw/2,sy+ch*0.75);
+  }
+}
+
+// ===== ТАЧ РЕДАКТОРА =====
+let edTouchStartX=0,edTouchStartY=0,edTouchMoved=false,edTouchScrollStart=0;
+
+edCanvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const t=e.touches[0];
+  edTouchStartX=t.clientX;edTouchStartY=t.clientY;edTouchMoved=false;edTouchScrollStart=edScrollX;
+  edPainting=true;edPaintTool=edTool;
+  // Сразу рисуем
+  const{col,row}=screenToCell(t.clientX,t.clientY);
+  if(edTool==='erase')eraseCell(col,row);else placeCell(col,row);
+  haptic('tap');renderEditor();
+},{passive:false});
+
+edCanvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  const t=e.touches[0];
+  const dx=t.clientX-edTouchStartX;
+  const dy=t.clientY-edTouchStartY;
+  if(Math.abs(dx)>8||Math.abs(dy)>8) edTouchMoved=true;
+
+  if(e.touches.length===2){
+    // Два пальца — скролл
+    const avg=(e.touches[0].clientX+e.touches[1].clientX)/2;
+    edScrollX=Math.max(0,Math.min(edCols-10,edTouchScrollStart-Math.round((avg-edTouchStartX)/edCellW)));
+  } else if(edTouchMoved&&Math.abs(dx)>Math.abs(dy)*1.5){
+    // Горизонтальный свайп — скролл
+    edScrollX=Math.max(0,Math.min(edCols-10,edTouchScrollStart-Math.round(dx/edCellW)));
+  } else {
+    // Рисуем по пути
+    const{col,row}=screenToCell(t.clientX,t.clientY);
+    if(edTool==='erase')eraseCell(col,row);else placeCell(col,row);
+  }
+  renderEditor();
+},{passive:false});
+
+edCanvas.addEventListener('touchend',e=>{e.preventDefault();edPainting=false;},{passive:false});
+
+// Мышь для десктопа
+let edMouseDown=false;
+edCanvas.addEventListener('mousedown',e=>{edMouseDown=true;const{col,row}=screenToCell(e.offsetX,e.offsetY);if(edTool==='erase')eraseCell(col,row);else placeCell(col,row);renderEditor();});
+edCanvas.addEventListener('mousemove',e=>{if(!edMouseDown)return;const{col,row}=screenToCell(e.offsetX,e.offsetY);if(edTool==='erase')eraseCell(col,row);else placeCell(col,row);renderEditor();});
+edCanvas.addEventListener('mouseup',()=>edMouseDown=false);
+edCanvas.addEventListener('wheel',e=>{e.preventDefault();edScrollX=Math.max(0,Math.min(edCols-10,edScrollX+Math.round(e.deltaX/edCellW)));renderEditor();},{passive:false});
+
+// Кнопки инструментов
+document.querySelectorAll('.tool-btn').forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    edTool=btn.dataset.tool;
+    document.getElementById('tp-popup').style.display='none';
   });
 });
 
-// Тач события
-// Тач на canvas — для прыжка/корабля во время игры
-canvas.addEventListener('touchstart',e=>{
-  e.preventDefault(); pressStart();
-},{passive:false});
-
-canvas.addEventListener('touchend',e=>{
-  e.preventDefault(); pressEnd();
-},{passive:false});
-
-canvas.addEventListener('mousedown',e=>{ pressStart(); });
-canvas.addEventListener('mouseup',()=>pressEnd());
-
-document.addEventListener('keydown',e=>{
-  if(e.code!=='Space') return; e.preventDefault();
-  if(document.getElementById('overlay').style.display!=='none'){
-    document.getElementById('overlay').style.display='none';startGame();return;
-  }
-  pressStart();
+// Кнопки редактора
+document.getElementById('ed-back-btn').addEventListener('click',e=>{e.stopPropagation();closeEditor();});
+document.getElementById('ed-clear-btn').addEventListener('click',e=>{
+  e.stopPropagation();
+  customLevelData=[];renderEditor();
 });
-document.addEventListener('keyup',e=>{if(e.code==='Space') pressEnd();});
-canvas.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+document.getElementById('ed-play-btn').addEventListener('click',e=>{
+  e.stopPropagation();
+  if(customLevelData.length===0){document.getElementById('ed-info').textContent='Сначала расставь объекты!';return;}
+  document.getElementById('editor').style.display='none';
+  setCanvasInput(true);
+  startGame('custom');
+});
 
+// Старт
 showOverlay('menu');
 loop();
 </script>
