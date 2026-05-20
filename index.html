@@ -212,12 +212,12 @@ let currentLevel=1;
 let attempts=0;
 let bests={1:0,2:0,3:0,custom:0};
 let pressing=false;
-const LEVEL_PALS={1:['#10b981','#06b6d4','#a3e635'],2:['#3b82f6','#8b5cf6','#ec4899'],3:['#a855f7','#ec4899','#f97316'],custom:['#ec4899','#f97316','#facc15']};
+const LEVEL_PALS={1:['#4f46e5','#7c3aed','#a78bfa'],2:['#3b82f6','#8b5cf6','#ec4899'],3:['#a855f7','#ec4899','#f97316'],custom:['#ec4899','#f97316','#facc15']};
 let pal=LEVEL_PALS[1];
 
 // ===== ГЕНЕРАЦИЯ УРОВНЕЙ =====
 function makeAutoLevel(lvl){
-  const segs=[];let x=W+T()*5;const len=W*14;
+  const segs=[];let x=W+T()*5;const len=lvl===1?x+T()*130:W*14;
   if(lvl===3){
     const ss=len*0.35,se=len*0.70;
     while(x<ss-T()*8){
@@ -242,11 +242,140 @@ function makeAutoLevel(lvl){
       else x+=T()*(1+Math.floor(Math.random()*2));
     }
   } else if(lvl===1){
-    while(x<len-T()*8){
-      const r=Math.random();
-      if(r<0.12){segs.push({t:'spike',x,y:GY()});x+=T()*(4+Math.floor(Math.random()*5));}
-      else if(r<0.20){segs.push({t:'block',x,y:GY()-T()});x+=T()*(3+Math.floor(Math.random()*4));}
-      else x+=T()*(2+Math.floor(Math.random()*4));
+    // === STEREO MADNESS — фиксированный уровень ===
+    // Каждый элемент расставлен вручную по структуре оригинала
+    // Единица = T() (размер тайла)
+    // s(n) = шип на полу через n тайлов
+    // b(n,h) = блок на высоте h через n тайлов
+    // bs(n,h) = блок + шип на нём через n тайлов
+    // ss(n,k) = k шипов подряд через n тайлов
+
+    const S = [
+      // [тип, смещение от предыдущего, высота_ряда (0=пол)]
+      // тип: 's'=шип, 'b'=блок, 'bs'=блок+шип, 'ss2'=2шипа, 'ss3'=3шипа
+      // --- Вступление (просто бежим) ---
+      ['gap', 8],
+      // --- Первая секция: одиночные шипы ---
+      ['s',   6],   // шип 1
+      ['gap', 5],
+      ['s',   5],   // шип 2
+      ['gap', 6],
+      ['s',   4],   // шип 3
+      ['gap', 4],
+      // --- Первый блок ---
+      ['b',   5, 1], // блок (1 высота)
+      ['gap', 2],
+      ['s',   3],
+      ['gap', 4],
+      // --- Два шипа подряд ---
+      ['ss2', 6],
+      ['gap', 5],
+      ['s',   4],
+      ['gap', 5],
+      // --- Блок + шип ---
+      ['b',   5, 1],
+      ['gap', 1],
+      ['b',   1, 1],
+      ['gap', 3],
+      ['s',   3],
+      // --- Блоки платформа ---
+      ['gap', 5],
+      ['b',   4, 1],
+      ['b',   1, 1],
+      ['b',   1, 1],
+      ['gap', 1],
+      ['bs',  3, 1], // блок с шипом
+      ['gap', 4],
+      // --- Тройные шипы ---
+      ['ss3', 5],
+      ['gap', 6],
+      ['s',   4],
+      ['gap', 4],
+      ['ss2', 5],
+      ['gap', 5],
+      // --- Высокий блок ---
+      ['b',   4, 2],
+      ['gap', 3],
+      ['bs',  3, 2],
+      ['gap', 2],
+      ['s',   3],
+      ['gap', 4],
+      // --- Серия шипов ---
+      ['s',   4],
+      ['gap', 2],
+      ['s',   2],
+      ['gap', 2],
+      ['s',   2],
+      ['gap', 5],
+      // --- Платформы ---
+      ['b',   4, 1],
+      ['b',   1, 1],
+      ['gap', 2],
+      ['b',   3, 2],
+      ['gap', 1],
+      ['b',   1, 2],
+      ['bs',  1, 2],
+      ['gap', 4],
+      ['s',   3],
+      ['gap', 5],
+      // --- Нарастание ---
+      ['ss2', 4],
+      ['gap', 3],
+      ['ss2', 3],
+      ['gap', 4],
+      ['ss3', 4],
+      ['gap', 5],
+      ['b',   4, 1],
+      ['bs',  1, 1],
+      ['gap', 3],
+      ['b',   4, 2],
+      ['bs',  1, 2],
+      ['gap', 3],
+      // --- Финальная секция ---
+      ['s',   5],
+      ['gap', 3],
+      ['ss2', 4],
+      ['gap', 3],
+      ['s',   3],
+      ['gap', 3],
+      ['ss3', 4],
+      ['gap', 4],
+      ['b',   4, 1],
+      ['b',   1, 1],
+      ['b',   1, 1],
+      ['bs',  1, 1],
+      ['gap', 3],
+      ['ss2', 4],
+      ['gap', 3],
+      ['s',   4],
+      ['gap', 6],
+    ];
+
+    for(const step of S){
+      const type=step[0];
+      const n=step[1];
+      if(type==='gap'){ x+=T()*n; continue; }
+      const h=step[2]||0;
+      const yFloor=GY();
+      const yBase=yFloor-T()*h;
+      if(type==='s'){
+        segs.push({t:'spike',x,y:yFloor}); x+=T()*n;
+      } else if(type==='ss2'){
+        segs.push({t:'spike',x,y:yFloor});
+        segs.push({t:'spike',x:x+T(),y:yFloor});
+        x+=T()*n;
+      } else if(type==='ss3'){
+        segs.push({t:'spike',x,y:yFloor});
+        segs.push({t:'spike',x:x+T(),y:yFloor});
+        segs.push({t:'spike',x:x+T()*2,y:yFloor});
+        x+=T()*n;
+      } else if(type==='b'){
+        segs.push({t:'block',x,y:yBase}); x+=T()*n;
+      } else if(type==='bs'){
+        segs.push({t:'block',x,y:yBase});
+        segs.push({t:'spike',x,y:yBase});
+        x+=T()*n;
+      }
     }
   } else {
     while(x<len-T()*8){
